@@ -501,23 +501,47 @@ openTicketDetail(t, rowEl){
   const list = DB.state.rdosByTicket[t.id] || [];
   if (els.tdRDOList) els.tdRDOList.innerHTML = list.map(i=>`<li>${i}</li>`).join('') || '<li>Nenhum RDO registrado.</li>';
   if (els.tdEditForm){
-    const fieldsHTML = TICKET_FIELDS.map(f=>{
-      const label = TICKET_FIELD_LABELS[f];
-      const val = t[f] ?? '';
-      if (f === 'descricao')
-        return `<div class="field"><label>${label}</label><textarea name="${f}">${val}</textarea></div>`;
-      return `<div class="field"><label>${label}</label><input name="${f}" value="${val}"/></div>`;
-    }).join('');
-    els.tdEditForm.innerHTML = `
-      <form id="editTicketForm" class="edit-form">
-        ${fieldsHTML}
-        <div class="actions">
-          <button type="submit" class="save-btn">Salvar</button>
-          <button type="button" class="del-btn" id="btnDelTicket">Excluir</button>
-        </div>
-      </form>`;
-    const form = qs('#editTicketForm', els.tdEditForm);
-    form?.addEventListener('submit', ev=>{
+    els.tdEditForm.innerHTML = '';
+    const form = document.createElement('form');
+    form.id = 'editTicketForm';
+    form.className = 'edit-form';
+
+    TICKET_FIELDS.forEach(f => {
+      const wrap = document.createElement('div');
+      wrap.className = 'field';
+      const label = document.createElement('label');
+      label.textContent = TICKET_FIELD_LABELS[f];
+      let inp;
+      if (f === 'descricao') {
+        inp = document.createElement('textarea');
+        inp.value = t[f] ?? '';
+      } else {
+        inp = document.createElement('input');
+        inp.value = t[f] ?? '';
+      }
+      inp.name = f;
+      wrap.appendChild(label);
+      wrap.appendChild(inp);
+      form.appendChild(wrap);
+    });
+
+    const actions = document.createElement('div');
+    actions.className = 'actions';
+    const btnSave = document.createElement('button');
+    btnSave.type = 'submit';
+    btnSave.className = 'save-btn';
+    btnSave.textContent = 'Salvar';
+    const btnDel = document.createElement('button');
+    btnDel.type = 'button';
+    btnDel.className = 'del-btn';
+    btnDel.id = 'btnDelTicket';
+    btnDel.textContent = 'Excluir';
+    actions.appendChild(btnSave);
+    actions.appendChild(btnDel);
+    form.appendChild(actions);
+    els.tdEditForm.appendChild(form);
+
+    form.addEventListener('submit', ev=>{
       ev.preventDefault();
       const fd = new FormData(form);
       const updated = {};
@@ -526,7 +550,7 @@ openTicketDetail(t, rowEl){
       updated.prazo = Number(updated.prazo);
       UI.editTicket(t, updated);
     });
-    qs('#btnDelTicket', els.tdEditForm)?.addEventListener('click', ()=> UI.deleteTicket(t));
+    btnDel.addEventListener('click', ()=> UI.deleteTicket(t));
   }
 
   if (!els._subtabsBound && els.ticketDetail) {
