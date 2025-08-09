@@ -375,7 +375,14 @@
         this.renderSLAChart(t.concl, t.prazo, 'chartSLA');
       },
 
-      renderAll(){ this.renderTickets(); this.renderProjects(); this.updateProjectArrows(); },
+      renderAll(){
+        this.renderTickets();
+        this.renderProjects();
+        this.updateProjectArrows();
+        if(!document.body.classList.contains('tickets-page') && !document.body.classList.contains('projects-page')){
+          this._renderOverview();
+        }
+      },
 
       renderTickets(){
   els.ticketsTableBody.innerHTML = '';
@@ -397,18 +404,18 @@
   DB.state.tickets.forEach(t => {
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td><button class="linklike" data-id="${t.id}">${t.id}</button></td>
-      <td>${fmtDate(t.createdAt)}</td>
-      <td>${t.meetPoint}</td>
-      <td>${t.dupla}</td>
-      ${isTV() ? `<td class="col-resumo" title="${t.resumo}">${t.resumo}</td>` : ''}
-      <td>
+      <td data-label="ID do chamado"><button class="linklike" data-id="${t.id}">${t.id}</button></td>
+      <td data-label="Data de criação">${fmtDate(t.createdAt)}</td>
+      <td data-label="Ponto de encontro">${t.meetPoint}</td>
+      <td data-label="Dupla">${t.dupla}</td>
+      ${isTV() ? `<td class="col-resumo" data-label="Resumo" title="${t.resumo}">${t.resumo}</td>` : ''}
+      <td data-label="% de conclusão">
         <div class="prog">
           <div class="nums"><span>Concl.: <b>${t.concl}%</b></span></div>
           <div class="progress"><i style="width:${t.concl}%"></i></div>
         </div>
       </td>
-      <td>
+      <td data-label="% de prazo">
         <div class="prog">
           <div class="nums"><span>Prazo: <b>${t.prazo}%</b></span></div>
           <div class="progress"><i style="width:${t.prazo}%"></i></div>
