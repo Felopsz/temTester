@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Telemix — Login & Dashboard</title>
+
+  <!-- CSS externos -->
+  <link rel="stylesheet" href="./assets/css/base.css">
+  <link rel="stylesheet" href="./assets/css/layout.css">
+  <link rel="stylesheet" href="./assets/css/login.css">
+  <link rel="stylesheet" href="./assets/css/dashboard.css">
+</head>
+<body>
+  <div class="glow" aria-hidden="true"></div>
+
+  <!-- VIEW: LOGIN (app.js injeta o conteúdo aqui) -->
+  <section id="view-login" aria-label="Login"></section>
+
+  <!-- VIEW: DASHBOARD (app.js injeta o conteúdo aqui) -->
+  <section id="view-dashboard" aria-label="Dashboard">
+    <header class="top panel">
+      <div class="brand-inline">
+        <button id="btnHamb" class="hamburger">☰</button>
+        <span class="pill" id="sectionPill">Dashboard</span>
+        <span class="greet" id="greet" style="margin-left:8px;color:#cbd5e1;font-size:12px"></span>
+        <span class="clock" id="clock" style="margin-left:10px;color:#9aa0a6;font-size:12px"></span>
+      </div>
+      <div class="top-actions">
+        <button class="tv-mode-btn" id="btnTV" title="Modo TV">📺</button>
+        <button class="logout" id="btnLogout">Sair</button>
+      </div>
+    </header>
+
+    <!-- Aqui virão os blocos/tabs da dashboard -->
+  </section>
+
+  <!-- Opcional: overlay de detalhe de projeto -->
+  <div class="project-detail" id="projectDetail" aria-hidden="true"></div>
+
+  <!-- JS da aplicação -->
+  <script src="./app.js" defer></script>
+</body>
+</html>

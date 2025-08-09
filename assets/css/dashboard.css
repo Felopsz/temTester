@@ -1,0 +1,333 @@
+/* DASHBOARD específicos */
+
+/* Seções e títulos */
+.section{
+  background:#10141c; border:1px solid var(--card-border);
+  border-radius:14px; padding:14px; display:flex; flex-direction:column; gap:12px;
+}
+.section h2{
+  font-size:14px; color:var(--muted); font-weight:600; letter-spacing:.3px;
+  display:flex; align-items:center; justify-content:space-between;
+  margin:0;               /* evita espaço exagerado */
+  line-height:1;          /* header mais compacto */
+}
+
+/* Chamados (overview) */
+.tickets{ grid-column: span 7; }
+.table-wrap{
+  max-height: clamp(220px, 40vh, 440px);
+  overflow:auto; overscroll-behavior: contain;
+}
+/* scrollbar custom da tabela (overview e tickets) */
+.table-wrap{ scrollbar-width: thin; scrollbar-color: rgba(122,162,255,.5) rgba(255,255,255,.06); }
+.table-wrap::-webkit-scrollbar{ width:10px }
+.table-wrap::-webkit-scrollbar-track{ background: rgba(255,255,255,.06); border-radius: 10px }
+.table-wrap::-webkit-scrollbar-thumb{
+  background: linear-gradient(180deg, var(--brand), var(--brand-strong));
+  border-radius: 10px; border:2px solid rgba(255,255,255,.06)
+}
+
+.table{ width:100%; border-collapse: collapse; font-size:14px; table-layout: fixed }
+.table thead th{ text-align:left; font-weight:600; color:var(--muted); padding:10px 8px; border-bottom:1px solid var(--card-border) }
+.table tbody td{ padding:10px 8px; border-bottom:1px solid rgba(255,255,255,.06); vertical-align:top }
+.table tbody tr{ cursor:pointer; transition: background var(--transition), box-shadow var(--transition) }
+.table tbody tr:hover{ background:#0f131a }
+.table tbody tr.selected{ background:#151a24; box-shadow: inset 0 0 0 1px rgba(122,162,255,.35) }
+.table tbody tr:last-child td{ border-bottom:none }
+
+.prog{ display:grid; gap:6px }
+.prog .nums{ display:flex; gap:10px; font-size:12px; color:#cbd5e1 }
+.nums b{ color:#fff }
+.progress{ height:8px; background:#0f131a; border:1px solid var(--card-border); border-radius:8px; overflow:hidden }
+.progress > i{ display:block; height:100%; background: linear-gradient(180deg, var(--brand), var(--brand-strong)); width:0% }
+
+/* Gráficos (overview) */
+.charts{ grid-column: span 5; }
+.chart{ background:#0f131a; border:1px dashed rgba(255,255,255,.12); border-radius:12px; padding:10px }
+.chart h3{ font-size:13px; color:var(--muted); margin-bottom:6px }
+.svg-wrap{ width:100%; height:140px }
+.legend{ display:flex; gap:8px; align-items:center; color:var(--muted); font-size:12px }
+.legend .dot{ width:10px; height:10px; border-radius:999px; background:linear-gradient(180deg, var(--brand), var(--brand-strong)) }
+
+/* Projetos */
+.projects{ grid-column: span 12; position:relative }
+.projects header.actions{ display:flex; align-items:center; justify-content:space-between }
+.proj-actions{ display:flex; gap:8px }
+.carousel{ display:flex; gap:12px; overflow:auto; scroll-snap-type: x mandatory; padding: 2px 4px; }
+.carousel{ scrollbar-width: thin; scrollbar-color: rgba(122,162,255,.5) rgba(255,255,255,.06) }
+.carousel::-webkit-scrollbar{ height:10px }
+.carousel::-webkit-scrollbar-track{ background: rgba(255,255,255,.06); border-radius: 10px }
+.carousel::-webkit-scrollbar-thumb{
+  background: linear-gradient(180deg, var(--brand), var(--brand-strong));
+  border-radius: 10px; border:2px solid rgba(255,255,255,.06)
+}
+.project{
+  flex: 0 0 320px; scroll-snap-align: start; background:#0f131a;
+  border:1px solid var(--card-border); border-radius:12px; padding:12px; display:grid; gap:8px
+}
+.project .meta{ display:flex; gap:10px; flex-wrap:wrap; color:var(--muted); font-size:12px }
+.project .pbar{ height:8px; background:#0b0f16; border:1px solid var(--card-border); border-radius:8px; overflow:hidden }
+.project .pbar > i{ display:block; height:100%; background: linear-gradient(180deg, var(--brand), var(--brand-strong)); width:40% }
+
+.caro-btn{ background:#12161e; border:1px solid var(--card-border); height:32px; padding:0 10px; border-radius:10px; cursor:pointer; display:grid; place-items:center; transition: all var(--transition) }
+.caro-btn:hover{ border-color: rgba(122,162,255,.45) }
+.caro-btn.disabled{ opacity:.4; pointer-events:none }
+
+/* Overlay de projeto (mantido) */
+.project-detail{ position: fixed; inset: 0; display:none; align-items:center; justify-content:center; padding:20px; }
+.project-detail .overlay{ position:absolute; inset:0; background: rgba(0,0,0,.5); backdrop-filter: blur(6px) }
+.project-detail .panel{ position:relative; z-index:1; width:min(96vw, 900px); background: #10141c; border:1px solid var(--card-border); border-radius:16px; box-shadow: var(--shadow); padding:18px; display:grid; gap:12px }
+.project-detail header{ display:flex; justify-content:space-between; align-items:center }
+.close{ background:transparent; border:1px solid var(--card-border); color:var(--text); padding:6px 10px; border-radius:10px; cursor:pointer }
+
+/* Link bonito pro ID */
+.linklike{
+  background: transparent; border: 0; color: var(--brand);
+  text-decoration: underline; cursor: pointer; padding: 0; font: inherit;
+}
+
+/* Detalhe do chamado (base) */
+.ticket-detail{
+  background:#0f131a; border:1px solid var(--card-border);
+  border-radius:12px; padding:12px; margin-top:8px;
+}
+
+/* Subtab ativa */
+.subtabs .subtab.active{
+  box-shadow: 0 -2px 0 var(--brand) inset;
+  border-color: rgba(122,162,255,.6);
+}
+
+/* ===== Tickets page layout ===== */
+/* Faz a seção de Chamados usar a largura total nessa aba */
+.tickets-page .tickets{ grid-column: span 12; }
+
+/* ===== Fix robusto para a aba Chamados ===== */
+/* 1) A content vira flex para deixar a seção de chamados ocupar tudo sem brigar com grid */
+.tickets-page .content{
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow: hidden;      /* impede overflow vertical */
+  min-height: 0;         /* ESSENCIAL para os filhos poderem rolar */
+}
+
+/* === Ajuste fino: seção Chamados com linhas explícitas === */
+/* 3 linhas: título (auto), lista (1fr), detalhes (2fr)  */
+.tickets-page #sectionTickets{
+  display: grid;
+  grid-template-rows: auto 1fr 2fr;
+  grid-template-areas:
+    "title"
+    "list"
+    "detail";
+  gap: 8px;
+  flex: 1;
+  min-height: 0;
+}
+
+/* garante que cada coisa fique na linha certa */
+.tickets-page #sectionTickets > h2{ grid-area: title; margin:0; padding:0; line-height:1.1; }
+.tickets-page #sectionTickets .table-wrap{ grid-area: list; min-height:0; overflow:auto; }
+.tickets-page #sectionTickets .ticket-detail{ grid-area: detail; min-height:0; overflow:auto; }
+
+/* largura total na aba Chamados */
+.tickets-page .tickets{ grid-column: 1 / -1; }
+
+/* === Painel de detalhes com altura estável === */
+/* grade interna: header (auto), meta (auto), tabs (auto), painel (1fr) */
+/* --- Painel de detalhes com altura estável (SEM forçar display) --- */
+#ticketDetail{
+  /* REMOVA o display !important daqui */
+  /* display: grid !important;  <-- apague esta linha */
+  display: grid;               /* ok manter grid, mas sem !important */
+  grid-template-rows: auto auto auto 1fr;
+  gap: 8px;
+  margin-top: 0;
+}
+
+/* --- Visibilidade controlada por página --- */
+/* Esconde por padrão (inclusive vence inline style por causa do !important) */
+#sectionTickets .ticket-detail{ display:none !important; }
+
+/* Mostra só quando estiver na aba Chamados */
+.tickets-page #sectionTickets .ticket-detail{ display:grid !important; }
+
+/* o container de gráficos/notas/etc ocupa o 1fr e rola dentro */
+#ticketDetail .subtab-panel{
+  min-height: 0;
+  height: 100%;
+  overflow: auto;
+}
+
+/* (opcional) deixa os botões de subtab mais firmes e sem pular layout */
+#ticketDetail .subtabs{
+  display:flex; gap:8px;
+  border-bottom:1px solid var(--card-border);
+  padding-bottom: 0;
+}
+#ticketDetail .subtabs .subtab{
+  background:transparent; border:1px solid var(--card-border); border-bottom:0;
+  padding:8px 12px; border-top-left-radius:10px; border-top-right-radius:10px; cursor:pointer; color:var(--text);
+}
+#ticketDetail .subtabs .subtab.active{
+  box-shadow: 0 -2px 0 var(--brand) inset;
+  border-color: rgba(122,162,255,.6);
+}
+
+/* donuts levemente menores, só na aba de chamados */
+.tickets-page .pie-grid{ grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+.tickets-page .donut svg{ width:108px; height:108px; }
+/* Oculta o detalhe por padrão */
+#sectionTickets .ticket-detail{ display:none; }
+
+/* Só mostra o detalhe quando a aba Chamados estiver ativa */
+.tickets-page #sectionTickets .ticket-detail{
+  display:grid !important; /* grid p/ manter o layout do header/meta/tabs */
+}
+/* Topo da dashboard */
+.top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.top-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Botão TV */
+.tv-mode-btn {
+  background: #12161e;
+  border: 1px solid var(--card-border);
+  color: var(--text);
+  padding: 6px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-right: 8px;
+}
+.tv-mode-btn:hover {
+  border-color: rgba(122,162,255,.45);
+}
+
+/* Layout em tela cheia (modo TV) */
+body.tv-mode .sidebar {
+  display: none;
+}
+body.tv-mode .top {
+  justify-content: space-between;
+}
+body.tv-mode #dashboardContent {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: auto 1fr;
+}
+body.tv-mode .section {
+  flex: 1;
+}
+body.tv-mode .content.panel {
+  padding: 0;
+  height: calc(100vh - 50px); /* ajusta altura menos o topo */
+  overflow: hidden;
+}
+body.tv-mode .section {
+  border-radius: 0;
+  border: none;
+}
+/* ===== TV MODE: colapsa a grid, remove limites e expande 100% ===== */
+body.tv-mode .sidebar{ display:none !important; }
+
+/* a grade que contém sidebar + topo + content deve virar 1 coluna */
+body.tv-mode .app{
+  grid-template-columns: 1fr !important;  /* mata a coluna da sidebar */
+  column-gap: 0 !important;
+  width: 100vw;
+  height: 100vh;
+  max-width: none;
+}
+
+/* topo ocupa largura total e "cola" no topo */
+body.tv-mode .top.panel{
+  border-radius: 0;
+  margin: 0;
+  max-width: none;
+  width: 100vw;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+
+/* conteúdo ocupa o resto da altura da tela */
+body.tv-mode .content.panel{
+  max-width: none;
+  width: 100vw;
+  padding: 16px;
+  border-radius: 0;
+  height: calc(100vh - 64px); /* ajustado via JS também p/ ficar perfeito */
+  overflow: auto;
+  box-shadow: none;
+  border: none;
+}
+
+/* opcional: as sections ficam “flush” na TV */
+body.tv-mode .section{
+  border-radius: 8px;
+}
+/* ===== MODO TV ===== */
+.tv-mode .sidebar{ display:none !important; }
+
+/* Faz a grade principal virar 1 coluna (sem sidebar) */
+.tv-mode .app{
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: auto 1fr;
+  gap: 12px;
+}
+
+/* Topo fica normal, content ocupa toda altura visível e rola */
+.tv-mode .content.panel{
+  height: calc(100vh - 64px); /* 64px ~ altura do header/top; ajuste se o seu topo for diferente */
+  overflow: auto;
+  padding: 12px;
+}
+
+/* Evita overflow lateral de qualquer seção no modo TV */
+.tv-mode .content.panel .section{
+  overflow: visible;
+  max-width: 100%;
+}
+
+/* Tabela no modo TV: coluna Resumo com elipse */
+.col-resumo{
+  max-width: 320px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color:#cbd5e1;
+  font-size: 13px;
+}
+
+/* Projetos ganham mais altura e um bloco extra */
+.tv-mode .projects .project{
+  min-height: 180px;      /* mais alto que o padrão */
+}
+.tv-mode .projects .proj-extra{
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed rgba(255,255,255,.12);
+  display: grid;
+  gap: 4px;
+  color:#cbd5e1;
+  font-size: 12px;
+}
+
+/* Em TV, o grid do overview pode respirar mais; a direita não sai da tela */
+.tv-mode .content.panel{
+  overflow-x: hidden;  /* mata qualquer transbordo horizontal */
+}
+
+/* Quando sair do modo TV, não deixa "fantasma" de alturas */
+.content.panel{ min-height: 0; } /* garante que filhos possam rolar */
