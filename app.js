@@ -22,16 +22,16 @@
     },
     bootstrap(){
       this.state.tickets = [
-        { id:'CH-1021', createdAt: '2025-08-06T09:35:00', meetPoint:'Centro - Loja 12', dupla:'Ana & João', concl:62, prazo:45, resumo:'Queda intermitente na rede local.' },
-        { id:'CH-1022', createdAt: '2025-08-06T14:10:00', meetPoint:'Zona Sul - Posto 3', dupla:'Marcos & Lia', concl:35, prazo:22, resumo:'Atualização de firmware pendente.' },
-        { id:'CH-1023', createdAt: '2025-08-07T18:55:00', meetPoint:'Barra - Quiosque B', dupla:'Rafa & Gui', concl:88, prazo:76, resumo:'Troca de ONU e reconfiguração.' },
-        { id:'CH-1024', createdAt: '2025-08-07T07:20:00', meetPoint:'Centro - Praça 7', dupla:'Paula & Leo', concl:20, prazo:12, resumo:'Visita inicial, aguardando acesso.' },
-        { id:'CH-1025', createdAt: '2025-08-08T11:45:00', meetPoint:'Niterói - Estação', dupla:'Bia & Tom', concl:58, prazo:40, resumo:'Ajuste de alinhamento de antena.' },
-        { id:'CH-1026', createdAt: '2025-08-08T12:30:00', meetPoint:'Copacabana - Posto 5', dupla:'Vivi & Dan', concl:12, prazo:8,  resumo:'Inspeção de cabeamento.' },
-        { id:'CH-1027', createdAt: '2025-08-08T13:05:00', meetPoint:'Tijuca - Saens Peña', dupla:'Caio & Nina', concl:42, prazo:51, resumo:'Oscilação de potência no enlace.' },
-        { id:'CH-1028', createdAt: '2025-08-08T13:50:00', meetPoint:'Centro - Ed. Rio', dupla:'Leo & Tati', concl:74, prazo:60, resumo:'Revisão de configuração de roteador.' },
-        { id:'CH-1029', createdAt: '2025-08-08T14:25:00', meetPoint:'Ilha - Galeão', dupla:'Iuri & Fê', concl:28, prazo:30, resumo:'Troca de patch cords danificados.' },
-        { id:'CH-1030', createdAt: '2025-08-08T15:10:00', meetPoint:'Barra - Shopping X', dupla:'Gabi & Renan', concl:91, prazo:85, resumo:'Homologação final do link.' },
+        { id:'CH-1021', createdAt:'2025-08-06T09:35:00', meetPoint:'Centro - Loja 12', dupla:'Ana & João', concl:62, prazo:45, resumo:'Queda intermitente na rede local.', solicitante:'Carlos M.', telefone:'(21) 90000-1021', descricao:'Queda intermitente na rede local. Equipamentos reiniciam sem aviso, requer verificação detalhada.' },
+        { id:'CH-1022', createdAt:'2025-08-06T14:10:00', meetPoint:'Zona Sul - Posto 3', dupla:'Marcos & Lia', concl:35, prazo:22, resumo:'Atualização de firmware pendente.', solicitante:'Júlia P.', telefone:'(21) 90000-1022', descricao:'Atualização de firmware pendente em vários roteadores da filial.' },
+        { id:'CH-1023', createdAt:'2025-08-07T18:55:00', meetPoint:'Barra - Quiosque B', dupla:'Rafa & Gui', concl:88, prazo:76, resumo:'Troca de ONU e reconfiguração.', solicitante:'Ricardo L.', telefone:'(21) 90000-1023', descricao:'Troca de ONU e reconfiguração completa do enlace principal.' },
+        { id:'CH-1024', createdAt:'2025-08-07T07:20:00', meetPoint:'Centro - Praça 7', dupla:'Paula & Leo', concl:20, prazo:12, resumo:'Visita inicial, aguardando acesso.', solicitante:'Mariana S.', telefone:'(21) 90000-1024', descricao:'Visita inicial, aguardando acesso ao edifício para diagnóstico.' },
+        { id:'CH-1025', createdAt:'2025-08-08T11:45:00', meetPoint:'Niterói - Estação', dupla:'Bia & Tom', concl:58, prazo:40, resumo:'Ajuste de alinhamento de antena.', solicitante:'Eduardo T.', telefone:'(21) 90000-1025', descricao:'Ajuste de alinhamento de antena para melhora de sinal.' },
+        { id:'CH-1026', createdAt:'2025-08-08T12:30:00', meetPoint:'Copacabana - Posto 5', dupla:'Vivi & Dan', concl:12, prazo:8, resumo:'Inspeção de cabeamento.', solicitante:'Fernanda B.', telefone:'(21) 90000-1026', descricao:'Inspeção de cabeamento em rede interna do cliente.' },
+        { id:'CH-1027', createdAt:'2025-08-08T13:05:00', meetPoint:'Tijuca - Saens Peña', dupla:'Caio & Nina', concl:42, prazo:51, resumo:'Oscilação de potência no enlace.', solicitante:'Sérgio A.', telefone:'(21) 90000-1027', descricao:'Oscilação de potência no enlace precisa de análise de interferência.' },
+        { id:'CH-1028', createdAt:'2025-08-08T13:50:00', meetPoint:'Centro - Ed. Rio', dupla:'Leo & Tati', concl:74, prazo:60, resumo:'Revisão de configuração de roteador.', solicitante:'Patrícia F.', telefone:'(21) 90000-1028', descricao:'Revisão de configuração de roteador e otimização de QoS.' },
+        { id:'CH-1029', createdAt:'2025-08-08T14:25:00', meetPoint:'Ilha - Galeão', dupla:'Iuri & Fê', concl:28, prazo:30, resumo:'Troca de patch cords danificados.', solicitante:'Henrique C.', telefone:'(21) 90000-1029', descricao:'Troca de patch cords danificados e testes de continuidade.' },
+        { id:'CH-1030', createdAt:'2025-08-08T15:10:00', meetPoint:'Barra - Shopping X', dupla:'Gabi & Renan', concl:91, prazo:85, resumo:'Homologação final do link.', solicitante:'Bianca R.', telefone:'(21) 90000-1030', descricao:'Homologação final do link com validação de performance.' },
       ];
       this.state.projects = [
         { id:'PR-2001', name:'Integração CRM', desc:'Conectar pipeline de vendas ao painel.', prazo:'2025-09-15', dias:40, pessoas:5, diasTrab:22, pct:55 },
@@ -153,13 +153,12 @@
               <div id="tdMeta" style="display:flex; gap:12px; flex-wrap:wrap; color:var(--muted); font-size:13px"></div>
 
               <div class="subtabs" style="display:flex; gap:8px; border-bottom:1px solid var(--card-border); margin-top:10px">
-                <button class="subtab active" data-tab="tdCharts" style="background:transparent;border:1px solid var(--card-border);border-bottom:0;padding:8px 12px;border-top-left-radius:10px;border-top-right-radius:10px;cursor:pointer;color:var(--text)">Gráficos</button>
+                <button class="subtab active" data-tab="tdDesc" style="background:transparent;border:1px solid var(--card-border);border-bottom:0;padding:8px 12px;border-top-left-radius:10px;border-top-right-radius:10px;cursor:pointer;color:var(--text)">Descrição</button>
                 <button class="subtab" data-tab="tdNotes" style="background:transparent;border:1px solid var(--card-border);border-bottom:0;padding:8px 12px;border-top-left-radius:10px;border-top-right-radius:10px;cursor:pointer;color:var(--text)">Anotações</button>
                 <button class="subtab" data-tab="tdRDO"   style="background:transparent;border:1px solid var(--card-border);border-bottom:0;padding:8px 12px;border-top-left-radius:10px;border-top-right-radius:10px;cursor:pointer;color:var(--text)">RDO's</button>
                 <button class="subtab" data-tab="tdObs"   style="background:transparent;border:1px solid var(--card-border);border-bottom:0;padding:8px 12px;border-top-left-radius:10px;border-top-right-radius:10px;cursor:pointer;color:var(--text)">Observações</button>
               </div>
-
-              <div class="subtab-panel active" id="tdCharts" style="padding-top:10px"></div>
+              <div class="subtab-panel active" id="tdDesc" style="padding-top:10px"></div>
               <div class="subtab-panel" id="tdNotes" style="display:none;padding-top:10px">
                 <textarea style="width:100%; min-height:120px; background:#0f131a; border:1px solid var(--card-border); border-radius:10px; color:var(--text); padding:10px" placeholder="Escreva anotações do chamado..."></textarea>
               </div>
@@ -283,7 +282,7 @@
   // ========== helpers ==========
   function clearTicketDetail(els){
     if (!els.ticketDetail) return;
-    if (els.tdCharts) els.tdCharts.innerHTML = '';
+    if (els.tdDesc) els.tdDesc.innerHTML = '';
     if (els.tdRDOList) els.tdRDOList.innerHTML = '';
   }
 
@@ -307,7 +306,7 @@
       tdTitle: qs('#tdTitle'),
       tdPct: qs('#tdPct'),
       tdMeta: qs('#tdMeta'),
-      tdCharts: qs('#tdCharts'),
+      tdDesc: qs('#tdDesc'),
       tdRDOList: qs('#tdRDOList'),
       btnLogout: qs('#btnLogout'),
       btnHamb: qs('#btnHamb'),
@@ -488,30 +487,21 @@ openTicketDetail(t, rowEl){
   this.selectTicket(t, rowEl);
   this.setActiveTab('tickets');
 
-  if (els.tdTitle) els.tdTitle.textContent = `${t.id} — ${t.meetPoint}`;
+  if (els.tdTitle) els.tdTitle.textContent = t.id;
   if (els.tdPct) els.tdPct.textContent = `${t.concl}%`;
   if (els.tdMeta) els.tdMeta.innerHTML = `
     <span><b>Data:</b> ${fmtDate(t.createdAt)}</span>
+    <span><b>Aberto por:</b> ${t.solicitante}</span>
+    <span><b>Contato:</b> ${t.telefone}</span>
+    <span><b>Ponto de encontro:</b> ${t.meetPoint}</span>
     <span><b>Dupla:</b> ${t.dupla}</span>
-    <span><b>Resumo:</b> ${t.resumo}</span>
     <span><b>Prazo consumido:</b> ${t.prazo}%</span>`;
 
-  if (els.tdCharts) {
-    els.tdCharts.innerHTML = `
-      <div class="pie-grid">
-        <div class="donut">
-          <svg id="tdPieConcl" viewBox="0 0 36 36"></svg>
-          <div class="lbl">Conclusão</div>
-          <div class="val">${t.concl}%</div>
-        </div>
-        <div class="donut">
-          <svg id="tdPiePrazo" viewBox="0 0 36 36"></svg>
-          <div class="lbl">Prazo consumido</div>
-          <div class="val">${t.prazo}%</div>
-        </div>
-      </div>`;
-    this.renderPie('tdPieConcl', t.concl);
-    this.renderPie('tdPiePrazo', t.prazo);
+  if (els.tdDesc) {
+    els.tdDesc.innerHTML = `
+      <p><b>Resumo:</b> ${t.resumo}</p>
+      <p>${t.descricao}</p>
+    `;
   }
 
   const list = DB.state.rdosByTicket[t.id] || [];
@@ -535,14 +525,14 @@ openTicketDetail(t, rowEl){
     els._subtabsBound = true;
   }
 
-  // Estado inicial (ativa "Gráficos")
+    // Estado inicial (ativa "Descrição")
   const tabs = qsa('.subtab', els.ticketDetail);
   const panels = qsa('.subtab-panel', els.ticketDetail);
   tabs.forEach(tb=> tb.classList.remove('active'));
   panels.forEach(p=> { p.classList.remove('active'); p.style.display='none'; });
 
-  const first = qs('.subtab[data-tab="tdCharts"]', els.ticketDetail);
-  const firstPanel = qs('#tdCharts', els.ticketDetail);
+  const first = qs('.subtab[data-tab="tdDesc"]', els.ticketDetail);
+  const firstPanel = qs('#tdDesc', els.ticketDetail);
   if (first) first.classList.add('active');
   if (firstPanel){ firstPanel.classList.add('active'); firstPanel.style.display=''; }
 },
@@ -595,24 +585,6 @@ openTicketDetail(t, rowEl){
             <text x="2" y="8">Prazo consumido: ${p}%</text>
             <text x="2" y="36">Conclusão: ${c}%</text>
           </g>`;
-      },
-
-      renderPie(targetId, pct){
-        const svg = document.getElementById(targetId);
-        if (!svg) return;
-        const p = Math.max(0, Math.min(100, pct||0));
-        const r = 15.915, c = 2*Math.PI*r, dash = (p/100)*c;
-        const gid = `gradPie-${targetId}`; // único por gráfico
-        svg.innerHTML = `
-          <defs>
-            <linearGradient id="${gid}" x1="0" x2="0" y1="0" y2="1">
-              <stop offset="0%" stop-color="${cssVar('--brand')}"/>
-              <stop offset="100%" stop-color="${cssVar('--brand-strong')}"/>
-            </linearGradient>
-          </defs>
-          <circle cx="18" cy="18" r="${r}" fill="none" stroke="rgba(255,255,255,.15)" stroke-width="3"/>
-          <circle cx="18" cy="18" r="${r}" fill="none" stroke="url(#${gid})" stroke-width="3"
-                  stroke-dasharray="${dash} ${c-dash}" stroke-linecap="round" transform="rotate(-90 18 18)"/>`;
       },
 
       // ====== Projects list + inline details ======

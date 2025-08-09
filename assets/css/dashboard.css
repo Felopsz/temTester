@@ -175,9 +175,6 @@
   border-color: rgba(122,162,255,.6);
 }
 
-/* donuts levemente menores, só na aba de chamados */
-.tickets-page .pie-grid{ grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
-.tickets-page .donut svg{ width:108px; height:108px; }
 /* Oculta o detalhe por padrão */
 #sectionTickets .ticket-detail{ display:none; }
 
