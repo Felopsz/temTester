@@ -338,6 +338,28 @@ body.tv-mode .section{
 }
 .del-btn:hover{ border-color:rgba(255,69,58,.6); }
 
+/* Formulário de edição de chamado */
+.edit-form{ display:grid; gap:8px; max-width:420px; }
+.edit-form .field{ display:flex; flex-direction:column; gap:4px; font-size:12px; }
+.edit-form input, .edit-form textarea{
+  background:#0f131a;
+  border:1px solid var(--card-border);
+  border-radius:10px;
+  color:var(--text);
+  padding:8px;
+}
+.edit-form textarea{ min-height:80px; resize:vertical; }
+.edit-form .actions{ display:flex; gap:8px; margin-top:8px; }
+.save-btn{
+  background:linear-gradient(180deg,var(--brand),var(--brand-strong));
+  border:0;
+  color:#fff;
+  padding:6px 12px;
+  border-radius:8px;
+  cursor:pointer;
+  font-size:12px;
+}
+
 /* Ajuste de larguras no modo TV */
 .tv-mode .tickets{ grid-column: span 5; }
 .tv-mode .charts{ grid-column: span 7; }

@@ -10,6 +10,19 @@
   const cssVar = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 
   let CURRENT_USER = 'admin';
+  const TICKET_FIELD_LABELS = {
+    id:'ID',
+    createdAt:'Data de criação',
+    solicitante:'Aberto por',
+    telefone:'Contato',
+    meetPoint:'Ponto de encontro',
+    dupla:'Dupla',
+    concl:'% de conclusão',
+    prazo:'% de prazo',
+    resumo:'Resumo',
+    descricao:'Descrição'
+  };
+  const TICKET_FIELDS = Object.keys(TICKET_FIELD_LABELS);
 
   // ========== MOCK DE DADOS (carregado de db.json) =========
   function genHistory(finalPct){
@@ -124,8 +137,6 @@
                 <strong id="tdTitle">Chamado</strong>
                 <div style="display:flex; gap:6px; align-items:center">
                   <span class="badge" id="tdPct">0%</span>
-                  <button class="edit-btn" id="tdEdit">Editar</button>
-                  <button class="del-btn" id="tdDel">Excluir</button>
                 </div>
               </header>
               <div id="tdMeta" style="display:flex; gap:12px; flex-wrap:wrap; color:var(--muted); font-size:13px"></div>
@@ -135,6 +146,7 @@
                 <button class="subtab" data-tab="tdNotes" style="background:transparent;border:1px solid var(--card-border);border-bottom:0;padding:8px 12px;border-top-left-radius:10px;border-top-right-radius:10px;cursor:pointer;color:var(--text)">Anotações</button>
                 <button class="subtab" data-tab="tdRDO"   style="background:transparent;border:1px solid var(--card-border);border-bottom:0;padding:8px 12px;border-top-left-radius:10px;border-top-right-radius:10px;cursor:pointer;color:var(--text)">RDO's</button>
                 <button class="subtab" data-tab="tdObs"   style="background:transparent;border:1px solid var(--card-border);border-bottom:0;padding:8px 12px;border-top-left-radius:10px;border-top-right-radius:10px;cursor:pointer;color:var(--text)">Observações</button>
+                <button class="subtab" data-tab="tdEditForm" style="background:transparent;border:1px solid var(--card-border);border-bottom:0;padding:8px 12px;border-top-left-radius:10px;border-top-right-radius:10px;cursor:pointer;color:var(--text)">Editar</button>
               </div>
               <div class="subtab-panel active" id="tdDesc" style="padding-top:10px"></div>
               <div class="subtab-panel" id="tdNotes" style="display:none;padding-top:10px">
@@ -146,6 +158,7 @@
               <div class="subtab-panel" id="tdObs" style="display:none;padding-top:10px">
                 <textarea style="width:100%; min-height:120px; background:#0f131a; border:1px solid var(--card-border); border-radius:10px; color:var(--text); padding:10px" placeholder="Observações gerais..."></textarea>
               </div>
+              <div class="subtab-panel" id="tdEditForm" style="display:none;padding-top:10px"></div>
             </div>
           </section>
 
@@ -262,6 +275,8 @@
     if (!els.ticketDetail) return;
     if (els.tdDesc) els.tdDesc.innerHTML = '';
     if (els.tdRDOList) els.tdRDOList.innerHTML = '';
+    if (els.tdMeta) els.tdMeta.innerHTML = '';
+    if (els.tdEditForm) els.tdEditForm.innerHTML = '';
   }
 
   // ========== DASHBOARD ==========
@@ -286,6 +301,7 @@
       tdMeta: qs('#tdMeta'),
       tdDesc: qs('#tdDesc'),
       tdRDOList: qs('#tdRDOList'),
+      tdEditForm: qs('#tdEditForm'),
       btnLogout: qs('#btnLogout'),
       btnHamb: qs('#btnHamb'),
       btnTV: qs('#btnTV'),
@@ -484,8 +500,34 @@ openTicketDetail(t, rowEl){
 
   const list = DB.state.rdosByTicket[t.id] || [];
   if (els.tdRDOList) els.tdRDOList.innerHTML = list.map(i=>`<li>${i}</li>`).join('') || '<li>Nenhum RDO registrado.</li>';
-  qs('#tdEdit')?.addEventListener('click', ()=> UI.editTicket(t));
-  qs('#tdDel')?.addEventListener('click', ()=> UI.deleteTicket(t));
+  if (els.tdEditForm){
+    const fieldsHTML = TICKET_FIELDS.map(f=>{
+      const label = TICKET_FIELD_LABELS[f];
+      const val = t[f] ?? '';
+      if (f === 'descricao')
+        return `<div class="field"><label>${label}</label><textarea name="${f}">${val}</textarea></div>`;
+      return `<div class="field"><label>${label}</label><input name="${f}" value="${val}"/></div>`;
+    }).join('');
+    els.tdEditForm.innerHTML = `
+      <form id="editTicketForm" class="edit-form">
+        ${fieldsHTML}
+        <div class="actions">
+          <button type="submit" class="save-btn">Salvar</button>
+          <button type="button" class="del-btn" id="btnDelTicket">Excluir</button>
+        </div>
+      </form>`;
+    const form = qs('#editTicketForm', els.tdEditForm);
+    form?.addEventListener('submit', ev=>{
+      ev.preventDefault();
+      const fd = new FormData(form);
+      const updated = {};
+      TICKET_FIELDS.forEach(f=> updated[f] = fd.get(f));
+      updated.concl = Number(updated.concl);
+      updated.prazo = Number(updated.prazo);
+      UI.editTicket(t, updated);
+    });
+    qs('#btnDelTicket', els.tdEditForm)?.addEventListener('click', ()=> UI.deleteTicket(t));
+  }
 
   if (!els._subtabsBound && els.ticketDetail) {
     els.ticketDetail.addEventListener('click', (ev)=>{
@@ -517,13 +559,7 @@ openTicketDetail(t, rowEl){
   if (firstPanel){ firstPanel.classList.add('active'); firstPanel.style.display=''; }
 },
 
-editTicket(t){
-  const fields = ['id','createdAt','meetPoint','dupla','concl','prazo','resumo','solicitante','telefone','descricao'];
-  const updated = { ...t };
-  fields.forEach(f => {
-    const val = prompt(`Novo ${f}`, t[f] ?? '');
-    if (val !== null) updated[f] = val;
-  });
+editTicket(t, updated){
   if (updated.id !== t.id){
     if (DB.state.rdosByTicket[t.id]){ DB.state.rdosByTicket[updated.id] = DB.state.rdosByTicket[t.id]; delete DB.state.rdosByTicket[t.id]; }
     if (DB.state.historyByTicket[t.id]){ DB.state.historyByTicket[updated.id] = DB.state.historyByTicket[t.id]; delete DB.state.historyByTicket[t.id]; }
