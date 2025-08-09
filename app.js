@@ -10,8 +10,28 @@
   const cssVar = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 
   let CURRENT_USER = 'admin';
+  const TICKET_FIELD_LABELS = {
+    id:'ID',
+    createdAt:'Data de criação',
+    solicitante:'Aberto por',
+    telefone:'Contato',
+    meetPoint:'Ponto de encontro',
+    dupla:'Dupla',
+    concl:'% de conclusão',
+    prazo:'% de prazo',
+    resumo:'Resumo',
+    descricao:'Descrição'
+  };
+  const TICKET_FIELDS = Object.keys(TICKET_FIELD_LABELS);
 
-  // ========== MOCK DE DADOS ==========
+  // ========== MOCK DE DADOS (carregado de db.json) =========
+  function genHistory(finalPct){
+    const pts = []; let v = Math.max(5, Math.min(90, finalPct - 20));
+    for(let i=0;i<8;i++){ v = Math.min(100, Math.max(0, v + (Math.random()*18-5))); pts.push(Math.round(v)); }
+    pts[7] = finalPct;
+    return pts;
+  }
+
   const DB = {
     state: {
       tickets: [],
@@ -20,50 +40,17 @@
       rdosByTicket: {},
       historyByTicket: {}, // série de progresso (8 pontos)
     },
-    bootstrap(){
-      this.state.tickets = [
-        { id:'CH-1021', createdAt: '2025-08-06T09:35:00', meetPoint:'Centro - Loja 12', dupla:'Ana & João', concl:62, prazo:45, resumo:'Queda intermitente na rede local.' },
-        { id:'CH-1022', createdAt: '2025-08-06T14:10:00', meetPoint:'Zona Sul - Posto 3', dupla:'Marcos & Lia', concl:35, prazo:22, resumo:'Atualização de firmware pendente.' },
-        { id:'CH-1023', createdAt: '2025-08-07T18:55:00', meetPoint:'Barra - Quiosque B', dupla:'Rafa & Gui', concl:88, prazo:76, resumo:'Troca de ONU e reconfiguração.' },
-        { id:'CH-1024', createdAt: '2025-08-07T07:20:00', meetPoint:'Centro - Praça 7', dupla:'Paula & Leo', concl:20, prazo:12, resumo:'Visita inicial, aguardando acesso.' },
-        { id:'CH-1025', createdAt: '2025-08-08T11:45:00', meetPoint:'Niterói - Estação', dupla:'Bia & Tom', concl:58, prazo:40, resumo:'Ajuste de alinhamento de antena.' },
-        { id:'CH-1026', createdAt: '2025-08-08T12:30:00', meetPoint:'Copacabana - Posto 5', dupla:'Vivi & Dan', concl:12, prazo:8,  resumo:'Inspeção de cabeamento.' },
-        { id:'CH-1027', createdAt: '2025-08-08T13:05:00', meetPoint:'Tijuca - Saens Peña', dupla:'Caio & Nina', concl:42, prazo:51, resumo:'Oscilação de potência no enlace.' },
-        { id:'CH-1028', createdAt: '2025-08-08T13:50:00', meetPoint:'Centro - Ed. Rio', dupla:'Leo & Tati', concl:74, prazo:60, resumo:'Revisão de configuração de roteador.' },
-        { id:'CH-1029', createdAt: '2025-08-08T14:25:00', meetPoint:'Ilha - Galeão', dupla:'Iuri & Fê', concl:28, prazo:30, resumo:'Troca de patch cords danificados.' },
-        { id:'CH-1030', createdAt: '2025-08-08T15:10:00', meetPoint:'Barra - Shopping X', dupla:'Gabi & Renan', concl:91, prazo:85, resumo:'Homologação final do link.' },
-      ];
-      this.state.projects = [
-        { id:'PR-2001', name:'Integração CRM', desc:'Conectar pipeline de vendas ao painel.', prazo:'2025-09-15', dias:40, pessoas:5, diasTrab:22, pct:55 },
-        { id:'PR-2002', name:'App Mobile Field', desc:'Aplicativo de campo para equipes externas.', prazo:'2025-10-02', dias:55, pessoas:7, diasTrab:18, pct:32 },
-        { id:'PR-2003', name:'Relatórios V2', desc:'Dashboards executivos e exportações.', prazo:'2025-08-30', dias:20, pessoas:3, diasTrab:12, pct:70 },
-        { id:'PR-2004', name:'Onboarding Rápido', desc:'Fluxo simplificado para novos clientes.', prazo:'2025-09-05', dias:18, pessoas:2, diasTrab:9, pct:48 },
-        { id:'PR-2005', name:'Chatbot L2', desc:'Bot de triagem de chamados nível 2.', prazo:'2025-11-01', dias:60, pessoas:6, diasTrab:10, pct:20 },
-        { id:'PR-2006', name:'Portal Parceiros', desc:'Área para parceiros externos.', prazo:'2025-12-15', dias:75, pessoas:8, diasTrab:15, pct:26 },
-      ];
-      this.state.materialsByProject = {
-        'PR-2001': ['API Key CRM','Webhook /lead-created','Tabela staging_crm','Doc mapeamento campos'],
-        'PR-2002': ['Design Figma Mobile','SDK Camera','GPS Provider','Guia de acessibilidade'],
-        'PR-2003': ['Spec KPIs','Lib export CSV','Template PDF','Exemplos de queries'],
-        'PR-2004': ['Flowchart onboarding','Email templates','Checklist CS'],
-        'PR-2005': ['Dataset intents L2','NLP model v0.9','Playbook fallback'],
-        'PR-2006': ['Contrato parceiro','Guia branding','Endpoint /partners'],
-      };
-      this.state.rdosByTicket = {
-        'CH-1021': ['RDO 08/06 - inspeção inicial','RDO 08/07 - ajuste de parâmetros'],
-        'CH-1023': ['RDO 08/07 - troca de ONU','RDO 08/08 - testes finais'],
-      };
+    async load(){
+      const res = await fetch('db.json');
+      const data = await res.json();
+      Object.assign(this.state, data);
+      this.state.historyByTicket = {};
       this.state.tickets.forEach(t=>{
         this.state.historyByTicket[t.id] = genHistory(t.concl);
       });
-      function genHistory(finalPct){
-        const pts = []; let v = Math.max(5, Math.min(90, finalPct - 20));
-        for(let i=0;i<8;i++){ v = Math.min(100, Math.max(0, v + (Math.random()*18-5))); pts.push(Math.round(v)); }
-        pts[7] = finalPct;
-        return pts;
-      }
     }
   };
+
 
   // ========== TEMPLATES ==========
   const tpl = {
@@ -148,18 +135,20 @@
             <div class="ticket-detail" id="ticketDetail" style="display:none; background:#0f131a; border:1px solid var(--card-border); border-radius:12px; padding:12px; margin-top:8px">
               <header style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px">
                 <strong id="tdTitle">Chamado</strong>
-                <span class="badge" id="tdPct">0%</span>
+                <div style="display:flex; gap:6px; align-items:center">
+                  <span class="badge" id="tdPct">0%</span>
+                </div>
               </header>
               <div id="tdMeta" style="display:flex; gap:12px; flex-wrap:wrap; color:var(--muted); font-size:13px"></div>
 
               <div class="subtabs" style="display:flex; gap:8px; border-bottom:1px solid var(--card-border); margin-top:10px">
-                <button class="subtab active" data-tab="tdCharts" style="background:transparent;border:1px solid var(--card-border);border-bottom:0;padding:8px 12px;border-top-left-radius:10px;border-top-right-radius:10px;cursor:pointer;color:var(--text)">Gráficos</button>
+                <button class="subtab active" data-tab="tdDesc" style="background:transparent;border:1px solid var(--card-border);border-bottom:0;padding:8px 12px;border-top-left-radius:10px;border-top-right-radius:10px;cursor:pointer;color:var(--text)">Descrição</button>
                 <button class="subtab" data-tab="tdNotes" style="background:transparent;border:1px solid var(--card-border);border-bottom:0;padding:8px 12px;border-top-left-radius:10px;border-top-right-radius:10px;cursor:pointer;color:var(--text)">Anotações</button>
                 <button class="subtab" data-tab="tdRDO"   style="background:transparent;border:1px solid var(--card-border);border-bottom:0;padding:8px 12px;border-top-left-radius:10px;border-top-right-radius:10px;cursor:pointer;color:var(--text)">RDO's</button>
                 <button class="subtab" data-tab="tdObs"   style="background:transparent;border:1px solid var(--card-border);border-bottom:0;padding:8px 12px;border-top-left-radius:10px;border-top-right-radius:10px;cursor:pointer;color:var(--text)">Observações</button>
+                <button class="subtab" data-tab="tdEditForm" style="background:transparent;border:1px solid var(--card-border);border-bottom:0;padding:8px 12px;border-top-left-radius:10px;border-top-right-radius:10px;cursor:pointer;color:var(--text)">Editar</button>
               </div>
-
-              <div class="subtab-panel active" id="tdCharts" style="padding-top:10px"></div>
+              <div class="subtab-panel active" id="tdDesc" style="padding-top:10px"></div>
               <div class="subtab-panel" id="tdNotes" style="display:none;padding-top:10px">
                 <textarea style="width:100%; min-height:120px; background:#0f131a; border:1px solid var(--card-border); border-radius:10px; color:var(--text); padding:10px" placeholder="Escreva anotações do chamado..."></textarea>
               </div>
@@ -169,6 +158,7 @@
               <div class="subtab-panel" id="tdObs" style="display:none;padding-top:10px">
                 <textarea style="width:100%; min-height:120px; background:#0f131a; border:1px solid var(--card-border); border-radius:10px; color:var(--text); padding:10px" placeholder="Observações gerais..."></textarea>
               </div>
+              <div class="subtab-panel" id="tdEditForm" style="display:none;padding-top:10px"></div>
             </div>
           </section>
 
@@ -245,11 +235,11 @@
         user.value=''; pass.value=''; enableContinueIfFilled();
       }, 200);
     };
-    const goToDashboard = () => {
+    const goToDashboard = async () => {
       viewLogin.style.display = 'none';
       viewDash.style.display = 'block';
       CURRENT_USER = (user.value.trim() || 'admin');
-      DB.bootstrap();
+      await DB.load();
       initDashboard();
     };
 
@@ -283,8 +273,10 @@
   // ========== helpers ==========
   function clearTicketDetail(els){
     if (!els.ticketDetail) return;
-    if (els.tdCharts) els.tdCharts.innerHTML = '';
+    if (els.tdDesc) els.tdDesc.innerHTML = '';
     if (els.tdRDOList) els.tdRDOList.innerHTML = '';
+    if (els.tdMeta) els.tdMeta.innerHTML = '';
+    if (els.tdEditForm) els.tdEditForm.innerHTML = '';
   }
 
   // ========== DASHBOARD ==========
@@ -307,8 +299,9 @@
       tdTitle: qs('#tdTitle'),
       tdPct: qs('#tdPct'),
       tdMeta: qs('#tdMeta'),
-      tdCharts: qs('#tdCharts'),
+      tdDesc: qs('#tdDesc'),
       tdRDOList: qs('#tdRDOList'),
+      tdEditForm: qs('#tdEditForm'),
       btnLogout: qs('#btnLogout'),
       btnHamb: qs('#btnHamb'),
       btnTV: qs('#btnTV'),
@@ -382,7 +375,14 @@
         this.renderSLAChart(t.concl, t.prazo, 'chartSLA');
       },
 
-      renderAll(){ this.renderTickets(); this.renderProjects(); this.updateProjectArrows(); },
+      renderAll(){
+        this.renderTickets();
+        this.renderProjects();
+        this.updateProjectArrows();
+        if(!document.body.classList.contains('tickets-page') && !document.body.classList.contains('projects-page')){
+          this._renderOverview();
+        }
+      },
 
       renderTickets(){
   els.ticketsTableBody.innerHTML = '';
@@ -404,18 +404,18 @@
   DB.state.tickets.forEach(t => {
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td><button class="linklike" data-id="${t.id}">${t.id}</button></td>
-      <td>${fmtDate(t.createdAt)}</td>
-      <td>${t.meetPoint}</td>
-      <td>${t.dupla}</td>
-      ${isTV() ? `<td class="col-resumo" title="${t.resumo}">${t.resumo}</td>` : ''}
-      <td>
+      <td data-label="ID do chamado"><button class="linklike" data-id="${t.id}">${t.id}</button></td>
+      <td data-label="Data de criação">${fmtDate(t.createdAt)}</td>
+      <td data-label="Ponto de encontro">${t.meetPoint}</td>
+      <td data-label="Dupla">${t.dupla}</td>
+      ${isTV() ? `<td class="col-resumo" data-label="Resumo" title="${t.resumo}">${t.resumo}</td>` : ''}
+      <td data-label="% de conclusão">
         <div class="prog">
           <div class="nums"><span>Concl.: <b>${t.concl}%</b></span></div>
           <div class="progress"><i style="width:${t.concl}%"></i></div>
         </div>
       </td>
-      <td>
+      <td data-label="% de prazo">
         <div class="prog">
           <div class="nums"><span>Prazo: <b>${t.prazo}%</b></span></div>
           <div class="progress"><i style="width:${t.prazo}%"></i></div>
@@ -488,34 +488,77 @@ openTicketDetail(t, rowEl){
   this.selectTicket(t, rowEl);
   this.setActiveTab('tickets');
 
-  if (els.tdTitle) els.tdTitle.textContent = `${t.id} — ${t.meetPoint}`;
+  if (els.tdTitle) els.tdTitle.textContent = t.id;
   if (els.tdPct) els.tdPct.textContent = `${t.concl}%`;
   if (els.tdMeta) els.tdMeta.innerHTML = `
     <span><b>Data:</b> ${fmtDate(t.createdAt)}</span>
+    <span><b>Aberto por:</b> ${t.solicitante}</span>
+    <span><b>Contato:</b> ${t.telefone}</span>
+    <span><b>Ponto de encontro:</b> ${t.meetPoint}</span>
     <span><b>Dupla:</b> ${t.dupla}</span>
-    <span><b>Resumo:</b> ${t.resumo}</span>
     <span><b>Prazo consumido:</b> ${t.prazo}%</span>`;
 
-  if (els.tdCharts) {
-    els.tdCharts.innerHTML = `
-      <div class="pie-grid">
-        <div class="donut">
-          <svg id="tdPieConcl" viewBox="0 0 36 36"></svg>
-          <div class="lbl">Conclusão</div>
-          <div class="val">${t.concl}%</div>
-        </div>
-        <div class="donut">
-          <svg id="tdPiePrazo" viewBox="0 0 36 36"></svg>
-          <div class="lbl">Prazo consumido</div>
-          <div class="val">${t.prazo}%</div>
-        </div>
-      </div>`;
-    this.renderPie('tdPieConcl', t.concl);
-    this.renderPie('tdPiePrazo', t.prazo);
+  if (els.tdDesc) {
+    els.tdDesc.innerHTML = `
+      <p><b>Resumo:</b> ${t.resumo}</p>
+      <p>${t.descricao}</p>
+    `;
   }
 
   const list = DB.state.rdosByTicket[t.id] || [];
   if (els.tdRDOList) els.tdRDOList.innerHTML = list.map(i=>`<li>${i}</li>`).join('') || '<li>Nenhum RDO registrado.</li>';
+  if (els.tdEditForm){
+    els.tdEditForm.innerHTML = '';
+    const form = document.createElement('form');
+    form.id = 'editTicketForm';
+    form.className = 'edit-form';
+
+    TICKET_FIELDS.forEach(f => {
+      const wrap = document.createElement('div');
+      wrap.className = 'field';
+      const label = document.createElement('label');
+      label.textContent = TICKET_FIELD_LABELS[f];
+      let inp;
+      if (f === 'descricao') {
+        inp = document.createElement('textarea');
+        inp.value = t[f] ?? '';
+      } else {
+        inp = document.createElement('input');
+        inp.value = t[f] ?? '';
+      }
+      inp.name = f;
+      wrap.appendChild(label);
+      wrap.appendChild(inp);
+      form.appendChild(wrap);
+    });
+
+    const actions = document.createElement('div');
+    actions.className = 'actions';
+    const btnSave = document.createElement('button');
+    btnSave.type = 'submit';
+    btnSave.className = 'save-btn';
+    btnSave.textContent = 'Salvar';
+    const btnDel = document.createElement('button');
+    btnDel.type = 'button';
+    btnDel.className = 'del-btn';
+    btnDel.id = 'btnDelTicket';
+    btnDel.textContent = 'Excluir';
+    actions.appendChild(btnSave);
+    actions.appendChild(btnDel);
+    form.appendChild(actions);
+    els.tdEditForm.appendChild(form);
+
+    form.addEventListener('submit', ev=>{
+      ev.preventDefault();
+      const fd = new FormData(form);
+      const updated = {};
+      TICKET_FIELDS.forEach(f=> updated[f] = fd.get(f));
+      updated.concl = Number(updated.concl);
+      updated.prazo = Number(updated.prazo);
+      UI.editTicket(t, updated);
+    });
+    btnDel.addEventListener('click', ()=> UI.deleteTicket(t));
+  }
 
   if (!els._subtabsBound && els.ticketDetail) {
     els.ticketDetail.addEventListener('click', (ev)=>{
@@ -535,16 +578,61 @@ openTicketDetail(t, rowEl){
     els._subtabsBound = true;
   }
 
-  // Estado inicial (ativa "Gráficos")
+    // Estado inicial (ativa "Descrição")
   const tabs = qsa('.subtab', els.ticketDetail);
   const panels = qsa('.subtab-panel', els.ticketDetail);
   tabs.forEach(tb=> tb.classList.remove('active'));
   panels.forEach(p=> { p.classList.remove('active'); p.style.display='none'; });
 
-  const first = qs('.subtab[data-tab="tdCharts"]', els.ticketDetail);
-  const firstPanel = qs('#tdCharts', els.ticketDetail);
+  const first = qs('.subtab[data-tab="tdDesc"]', els.ticketDetail);
+  const firstPanel = qs('#tdDesc', els.ticketDetail);
   if (first) first.classList.add('active');
   if (firstPanel){ firstPanel.classList.add('active'); firstPanel.style.display=''; }
+},
+
+editTicket(t, updated){
+  if (updated.id !== t.id){
+    if (DB.state.rdosByTicket[t.id]){ DB.state.rdosByTicket[updated.id] = DB.state.rdosByTicket[t.id]; delete DB.state.rdosByTicket[t.id]; }
+    if (DB.state.historyByTicket[t.id]){ DB.state.historyByTicket[updated.id] = DB.state.historyByTicket[t.id]; delete DB.state.historyByTicket[t.id]; }
+  }
+  Object.assign(t, updated);
+  DB.state.historyByTicket[t.id] = genHistory(t.concl);
+  UI.renderTickets();
+  UI.openTicketDetail(t);
+},
+
+deleteTicket(t){
+  if(!confirm('Excluir chamado?')) return;
+  DB.state.tickets = DB.state.tickets.filter(x=>x!==t);
+  delete DB.state.rdosByTicket[t.id];
+  delete DB.state.historyByTicket[t.id];
+  UI.renderTickets();
+  clearTicketDetail(els);
+},
+
+editProject(p){
+  const fields = ['id','name','desc','prazo','dias','pessoas','diasTrab','pct'];
+  const updated = { ...p };
+  fields.forEach(f => {
+    const val = prompt(`Novo ${f}`, p[f] ?? '');
+    if (val !== null) updated[f] = val;
+  });
+  if (updated.id !== p.id){
+    if (DB.state.materialsByProject[p.id]){ DB.state.materialsByProject[updated.id] = DB.state.materialsByProject[p.id]; delete DB.state.materialsByProject[p.id]; }
+  }
+  Object.assign(p, updated);
+  UI.renderProjects();
+  UI.updateProjectArrows();
+  UI.openProjectDetailInline(p);
+},
+
+deleteProject(p){
+  if(!confirm('Excluir projeto?')) return;
+  DB.state.projects = DB.state.projects.filter(x=>x!==p);
+  delete DB.state.materialsByProject[p.id];
+  UI.renderProjects();
+  UI.updateProjectArrows();
+  if(els.projDetailsInline) els.projDetailsInline.innerHTML = '';
 },
 
       // ===== Charts (andamento) =====
@@ -597,24 +685,6 @@ openTicketDetail(t, rowEl){
           </g>`;
       },
 
-      renderPie(targetId, pct){
-        const svg = document.getElementById(targetId);
-        if (!svg) return;
-        const p = Math.max(0, Math.min(100, pct||0));
-        const r = 15.915, c = 2*Math.PI*r, dash = (p/100)*c;
-        const gid = `gradPie-${targetId}`; // único por gráfico
-        svg.innerHTML = `
-          <defs>
-            <linearGradient id="${gid}" x1="0" x2="0" y1="0" y2="1">
-              <stop offset="0%" stop-color="${cssVar('--brand')}"/>
-              <stop offset="100%" stop-color="${cssVar('--brand-strong')}"/>
-            </linearGradient>
-          </defs>
-          <circle cx="18" cy="18" r="${r}" fill="none" stroke="rgba(255,255,255,.15)" stroke-width="3"/>
-          <circle cx="18" cy="18" r="${r}" fill="none" stroke="url(#${gid})" stroke-width="3"
-                  stroke-dasharray="${dash} ${c-dash}" stroke-linecap="round" transform="rotate(-90 18 18)"/>`;
-      },
-
       // ====== Projects list + inline details ======
       updateProjectArrows(){
         const el = els.projectsCarousel;
@@ -637,7 +707,11 @@ openTicketDetail(t, rowEl){
         els.projDetailsInline.innerHTML = `
           <header style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px">
             <strong>${p.name}</strong>
-            <span class="badge">${p.pct}%</span>
+            <div style="display:flex; gap:6px; align-items:center">
+              <span class="badge">${p.pct}%</span>
+              <button class="edit-btn" id="projEdit">Editar</button>
+              <button class="del-btn" id="projDel">Excluir</button>
+            </div>
           </header>
           <div style="display:flex; gap:12px; flex-wrap:wrap; color:var(--muted); font-size:13px">
             <span><b>Prazo:</b> ${new Date(p.prazo).toLocaleDateString('pt-BR')}</span>
@@ -650,59 +724,24 @@ openTicketDetail(t, rowEl){
             <h3 style="font-size:13px; color:var(--muted); margin-bottom:6px">Materiais</h3>
             <ul style="margin-left:18px; display:grid; gap:4px">${mats.map(m=>`<li>${m}</li>`).join('')}</ul>
           </div>`;
+        qs('#projEdit')?.addEventListener('click', ()=> UI.editProject(p));
+        qs('#projDel')?.addEventListener('click', ()=> UI.deleteProject(p));
       },
     };
-    // ===== Helpers do Modo TV (fora do UI!) =====
+  // ===== Helpers do Modo TV (fora do UI!) =====
 function isTV(){
   return document.body.classList.contains('tv-mode');
 }
 
+const sizeContentForTV = () => {
+  const top = document.querySelector('.top.panel');
+  const content = document.getElementById('dashboardContent');
+  if (!top || !content) return;
+  content.style.height = (window.innerHeight - top.offsetHeight) + 'px';
+};
+
 function toggleTVMode(){
   const fsEl = document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement;
-
-  if (!fsEl) {
-    const root = document.documentElement;
-    const req = root.requestFullscreen || root.webkitRequestFullscreen || root.msRequestFullscreen;
-    if (req) req.call(root).catch?.(e => console.warn('Fullscreen error:', e));
-    document.body.classList.add('tv-mode');
-  } else {
-    const exit = document.exitFullscreen || document.webkitExitFullscreen || document.msExitFullscreen;
-    if (exit) exit.call(document).catch?.(e => console.warn('Exit FS error:', e));
-    document.body.classList.remove('tv-mode');
-  }
-
-  // re-render pra aplicar/remover a coluna Resumo e extras dos projetos
-  UI.renderTickets();
-  UI.renderProjects();
-  UI.updateProjectArrows();
-}
-
-// Sincroniza classe ao sair por ESC/gesto
-['fullscreenchange','webkitfullscreenchange','msfullscreenchange'].forEach(ev=>{
-  document.addEventListener(ev, ()=>{
-    const fsEl = document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement;
-    document.body.classList.toggle('tv-mode', !!fsEl);
-    UI.renderTickets();
-    UI.renderProjects();
-    UI.updateProjectArrows();
-  });
-});
-
-// Botão TV
-els.btnTV?.addEventListener('click', toggleTVMode);
-
-    // ====== Modo TV (fullscreen + layout) ======
-    els.btnTV?.addEventListener('click', toggleTVMode);
-
-    function toggleTVMode(){
-  const fsEl = document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement;
-
-  const sizeContentForTV = () => {
-    const top = document.querySelector('.top.panel');
-    const content = document.getElementById('dashboardContent');
-    if (!top || !content) return;
-    content.style.height = (window.innerHeight - top.offsetHeight) + 'px';
-  };
 
   if (!fsEl) {
     const root = document.documentElement;
@@ -719,15 +758,35 @@ els.btnTV?.addEventListener('click', toggleTVMode);
     if (content) content.style.height = '';
     window.removeEventListener('resize', sizeContentForTV);
   }
+
+  // re-render pra aplicar/remover a coluna Resumo e extras dos projetos
+  UI.renderTickets();
+  UI.renderProjects();
+  UI.updateProjectArrows();
 }
 
+// Sincroniza classe ao sair por ESC/gesto
+['fullscreenchange','webkitfullscreenchange','msfullscreenchange'].forEach(ev=>{
+  document.addEventListener(ev, ()=>{
+    const fsEl = document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement;
+    if (!fsEl) {
+      document.body.classList.remove('tv-mode');
+      const content = document.getElementById('dashboardContent');
+      if (content) content.style.height = '';
+      window.removeEventListener('resize', sizeContentForTV);
+    } else {
+      document.body.classList.add('tv-mode');
+      sizeContentForTV();
+      window.addEventListener('resize', sizeContentForTV);
+    }
+    UI.renderTickets();
+    UI.renderProjects();
+    UI.updateProjectArrows();
+  });
+});
 
-    ['fullscreenchange','webkitfullscreenchange','msfullscreenchange'].forEach(ev=>{
-      document.addEventListener(ev, ()=>{
-        const fsEl = document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement;
-        if (!fsEl) document.body.classList.remove('tv-mode');
-      });
-    });
+// Botão TV
+els.btnTV?.addEventListener('click', toggleTVMode);
 
     // ====== listeners globais (blindados) ======
     els.btnLogout?.addEventListener('click', ()=>{ location.reload(); });
