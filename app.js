@@ -11,7 +11,14 @@
 
   let CURRENT_USER = 'admin';
 
-  // ========== MOCK DE DADOS ==========
+  // ========== MOCK DE DADOS (carregado de db.json) =========
+  function genHistory(finalPct){
+    const pts = []; let v = Math.max(5, Math.min(90, finalPct - 20));
+    for(let i=0;i<8;i++){ v = Math.min(100, Math.max(0, v + (Math.random()*18-5))); pts.push(Math.round(v)); }
+    pts[7] = finalPct;
+    return pts;
+  }
+
   const DB = {
     state: {
       tickets: [],
@@ -20,50 +27,17 @@
       rdosByTicket: {},
       historyByTicket: {}, // série de progresso (8 pontos)
     },
-    bootstrap(){
-      this.state.tickets = [
-        { id:'CH-1021', createdAt:'2025-08-06T09:35:00', meetPoint:'Centro - Loja 12', dupla:'Ana & João', concl:62, prazo:45, resumo:'Queda intermitente na rede local.', solicitante:'Carlos M.', telefone:'(21) 90000-1021', descricao:'Queda intermitente na rede local. Equipamentos reiniciam sem aviso, requer verificação detalhada.' },
-        { id:'CH-1022', createdAt:'2025-08-06T14:10:00', meetPoint:'Zona Sul - Posto 3', dupla:'Marcos & Lia', concl:35, prazo:22, resumo:'Atualização de firmware pendente.', solicitante:'Júlia P.', telefone:'(21) 90000-1022', descricao:'Atualização de firmware pendente em vários roteadores da filial.' },
-        { id:'CH-1023', createdAt:'2025-08-07T18:55:00', meetPoint:'Barra - Quiosque B', dupla:'Rafa & Gui', concl:88, prazo:76, resumo:'Troca de ONU e reconfiguração.', solicitante:'Ricardo L.', telefone:'(21) 90000-1023', descricao:'Troca de ONU e reconfiguração completa do enlace principal.' },
-        { id:'CH-1024', createdAt:'2025-08-07T07:20:00', meetPoint:'Centro - Praça 7', dupla:'Paula & Leo', concl:20, prazo:12, resumo:'Visita inicial, aguardando acesso.', solicitante:'Mariana S.', telefone:'(21) 90000-1024', descricao:'Visita inicial, aguardando acesso ao edifício para diagnóstico.' },
-        { id:'CH-1025', createdAt:'2025-08-08T11:45:00', meetPoint:'Niterói - Estação', dupla:'Bia & Tom', concl:58, prazo:40, resumo:'Ajuste de alinhamento de antena.', solicitante:'Eduardo T.', telefone:'(21) 90000-1025', descricao:'Ajuste de alinhamento de antena para melhora de sinal.' },
-        { id:'CH-1026', createdAt:'2025-08-08T12:30:00', meetPoint:'Copacabana - Posto 5', dupla:'Vivi & Dan', concl:12, prazo:8, resumo:'Inspeção de cabeamento.', solicitante:'Fernanda B.', telefone:'(21) 90000-1026', descricao:'Inspeção de cabeamento em rede interna do cliente.' },
-        { id:'CH-1027', createdAt:'2025-08-08T13:05:00', meetPoint:'Tijuca - Saens Peña', dupla:'Caio & Nina', concl:42, prazo:51, resumo:'Oscilação de potência no enlace.', solicitante:'Sérgio A.', telefone:'(21) 90000-1027', descricao:'Oscilação de potência no enlace precisa de análise de interferência.' },
-        { id:'CH-1028', createdAt:'2025-08-08T13:50:00', meetPoint:'Centro - Ed. Rio', dupla:'Leo & Tati', concl:74, prazo:60, resumo:'Revisão de configuração de roteador.', solicitante:'Patrícia F.', telefone:'(21) 90000-1028', descricao:'Revisão de configuração de roteador e otimização de QoS.' },
-        { id:'CH-1029', createdAt:'2025-08-08T14:25:00', meetPoint:'Ilha - Galeão', dupla:'Iuri & Fê', concl:28, prazo:30, resumo:'Troca de patch cords danificados.', solicitante:'Henrique C.', telefone:'(21) 90000-1029', descricao:'Troca de patch cords danificados e testes de continuidade.' },
-        { id:'CH-1030', createdAt:'2025-08-08T15:10:00', meetPoint:'Barra - Shopping X', dupla:'Gabi & Renan', concl:91, prazo:85, resumo:'Homologação final do link.', solicitante:'Bianca R.', telefone:'(21) 90000-1030', descricao:'Homologação final do link com validação de performance.' },
-      ];
-      this.state.projects = [
-        { id:'PR-2001', name:'Integração CRM', desc:'Conectar pipeline de vendas ao painel.', prazo:'2025-09-15', dias:40, pessoas:5, diasTrab:22, pct:55 },
-        { id:'PR-2002', name:'App Mobile Field', desc:'Aplicativo de campo para equipes externas.', prazo:'2025-10-02', dias:55, pessoas:7, diasTrab:18, pct:32 },
-        { id:'PR-2003', name:'Relatórios V2', desc:'Dashboards executivos e exportações.', prazo:'2025-08-30', dias:20, pessoas:3, diasTrab:12, pct:70 },
-        { id:'PR-2004', name:'Onboarding Rápido', desc:'Fluxo simplificado para novos clientes.', prazo:'2025-09-05', dias:18, pessoas:2, diasTrab:9, pct:48 },
-        { id:'PR-2005', name:'Chatbot L2', desc:'Bot de triagem de chamados nível 2.', prazo:'2025-11-01', dias:60, pessoas:6, diasTrab:10, pct:20 },
-        { id:'PR-2006', name:'Portal Parceiros', desc:'Área para parceiros externos.', prazo:'2025-12-15', dias:75, pessoas:8, diasTrab:15, pct:26 },
-      ];
-      this.state.materialsByProject = {
-        'PR-2001': ['API Key CRM','Webhook /lead-created','Tabela staging_crm','Doc mapeamento campos'],
-        'PR-2002': ['Design Figma Mobile','SDK Camera','GPS Provider','Guia de acessibilidade'],
-        'PR-2003': ['Spec KPIs','Lib export CSV','Template PDF','Exemplos de queries'],
-        'PR-2004': ['Flowchart onboarding','Email templates','Checklist CS'],
-        'PR-2005': ['Dataset intents L2','NLP model v0.9','Playbook fallback'],
-        'PR-2006': ['Contrato parceiro','Guia branding','Endpoint /partners'],
-      };
-      this.state.rdosByTicket = {
-        'CH-1021': ['RDO 08/06 - inspeção inicial','RDO 08/07 - ajuste de parâmetros'],
-        'CH-1023': ['RDO 08/07 - troca de ONU','RDO 08/08 - testes finais'],
-      };
+    async load(){
+      const res = await fetch('db.json');
+      const data = await res.json();
+      Object.assign(this.state, data);
+      this.state.historyByTicket = {};
       this.state.tickets.forEach(t=>{
         this.state.historyByTicket[t.id] = genHistory(t.concl);
       });
-      function genHistory(finalPct){
-        const pts = []; let v = Math.max(5, Math.min(90, finalPct - 20));
-        for(let i=0;i<8;i++){ v = Math.min(100, Math.max(0, v + (Math.random()*18-5))); pts.push(Math.round(v)); }
-        pts[7] = finalPct;
-        return pts;
-      }
     }
   };
+
 
   // ========== TEMPLATES ==========
   const tpl = {
@@ -148,7 +122,11 @@
             <div class="ticket-detail" id="ticketDetail" style="display:none; background:#0f131a; border:1px solid var(--card-border); border-radius:12px; padding:12px; margin-top:8px">
               <header style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px">
                 <strong id="tdTitle">Chamado</strong>
-                <span class="badge" id="tdPct">0%</span>
+                <div style="display:flex; gap:6px; align-items:center">
+                  <span class="badge" id="tdPct">0%</span>
+                  <button class="edit-btn" id="tdEdit">Editar</button>
+                  <button class="del-btn" id="tdDel">Excluir</button>
+                </div>
               </header>
               <div id="tdMeta" style="display:flex; gap:12px; flex-wrap:wrap; color:var(--muted); font-size:13px"></div>
 
@@ -244,11 +222,11 @@
         user.value=''; pass.value=''; enableContinueIfFilled();
       }, 200);
     };
-    const goToDashboard = () => {
+    const goToDashboard = async () => {
       viewLogin.style.display = 'none';
       viewDash.style.display = 'block';
       CURRENT_USER = (user.value.trim() || 'admin');
-      DB.bootstrap();
+      await DB.load();
       initDashboard();
     };
 
@@ -506,6 +484,8 @@ openTicketDetail(t, rowEl){
 
   const list = DB.state.rdosByTicket[t.id] || [];
   if (els.tdRDOList) els.tdRDOList.innerHTML = list.map(i=>`<li>${i}</li>`).join('') || '<li>Nenhum RDO registrado.</li>';
+  qs('#tdEdit')?.addEventListener('click', ()=> UI.editTicket(t));
+  qs('#tdDel')?.addEventListener('click', ()=> UI.deleteTicket(t));
 
   if (!els._subtabsBound && els.ticketDetail) {
     els.ticketDetail.addEventListener('click', (ev)=>{
@@ -535,6 +515,57 @@ openTicketDetail(t, rowEl){
   const firstPanel = qs('#tdDesc', els.ticketDetail);
   if (first) first.classList.add('active');
   if (firstPanel){ firstPanel.classList.add('active'); firstPanel.style.display=''; }
+},
+
+editTicket(t){
+  const fields = ['id','createdAt','meetPoint','dupla','concl','prazo','resumo','solicitante','telefone','descricao'];
+  const updated = { ...t };
+  fields.forEach(f => {
+    const val = prompt(`Novo ${f}`, t[f] ?? '');
+    if (val !== null) updated[f] = val;
+  });
+  if (updated.id !== t.id){
+    if (DB.state.rdosByTicket[t.id]){ DB.state.rdosByTicket[updated.id] = DB.state.rdosByTicket[t.id]; delete DB.state.rdosByTicket[t.id]; }
+    if (DB.state.historyByTicket[t.id]){ DB.state.historyByTicket[updated.id] = DB.state.historyByTicket[t.id]; delete DB.state.historyByTicket[t.id]; }
+  }
+  Object.assign(t, updated);
+  DB.state.historyByTicket[t.id] = genHistory(t.concl);
+  UI.renderTickets();
+  UI.openTicketDetail(t);
+},
+
+deleteTicket(t){
+  if(!confirm('Excluir chamado?')) return;
+  DB.state.tickets = DB.state.tickets.filter(x=>x!==t);
+  delete DB.state.rdosByTicket[t.id];
+  delete DB.state.historyByTicket[t.id];
+  UI.renderTickets();
+  clearTicketDetail(els);
+},
+
+editProject(p){
+  const fields = ['id','name','desc','prazo','dias','pessoas','diasTrab','pct'];
+  const updated = { ...p };
+  fields.forEach(f => {
+    const val = prompt(`Novo ${f}`, p[f] ?? '');
+    if (val !== null) updated[f] = val;
+  });
+  if (updated.id !== p.id){
+    if (DB.state.materialsByProject[p.id]){ DB.state.materialsByProject[updated.id] = DB.state.materialsByProject[p.id]; delete DB.state.materialsByProject[p.id]; }
+  }
+  Object.assign(p, updated);
+  UI.renderProjects();
+  UI.updateProjectArrows();
+  UI.openProjectDetailInline(p);
+},
+
+deleteProject(p){
+  if(!confirm('Excluir projeto?')) return;
+  DB.state.projects = DB.state.projects.filter(x=>x!==p);
+  delete DB.state.materialsByProject[p.id];
+  UI.renderProjects();
+  UI.updateProjectArrows();
+  if(els.projDetailsInline) els.projDetailsInline.innerHTML = '';
 },
 
       // ===== Charts (andamento) =====
@@ -609,7 +640,11 @@ openTicketDetail(t, rowEl){
         els.projDetailsInline.innerHTML = `
           <header style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px">
             <strong>${p.name}</strong>
-            <span class="badge">${p.pct}%</span>
+            <div style="display:flex; gap:6px; align-items:center">
+              <span class="badge">${p.pct}%</span>
+              <button class="edit-btn" id="projEdit">Editar</button>
+              <button class="del-btn" id="projDel">Excluir</button>
+            </div>
           </header>
           <div style="display:flex; gap:12px; flex-wrap:wrap; color:var(--muted); font-size:13px">
             <span><b>Prazo:</b> ${new Date(p.prazo).toLocaleDateString('pt-BR')}</span>
@@ -622,6 +657,8 @@ openTicketDetail(t, rowEl){
             <h3 style="font-size:13px; color:var(--muted); margin-bottom:6px">Materiais</h3>
             <ul style="margin-left:18px; display:grid; gap:4px">${mats.map(m=>`<li>${m}</li>`).join('')}</ul>
           </div>`;
+        qs('#projEdit')?.addEventListener('click', ()=> UI.editProject(p));
+        qs('#projDel')?.addEventListener('click', ()=> UI.deleteProject(p));
       },
     };
   // ===== Helpers do Modo TV (fora do UI!) =====

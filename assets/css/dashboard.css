@@ -326,5 +326,21 @@ body.tv-mode .section{
   overflow-x: hidden;  /* mata qualquer transbordo horizontal */
 }
 
+/* Botões de edição e exclusão */
+.edit-btn, .del-btn{
+  background:#12161e;
+  border:1px solid var(--card-border);
+  color:var(--text);
+  padding:4px 8px;
+  border-radius:8px;
+  cursor:pointer;
+  font-size:12px;
+}
+.del-btn:hover{ border-color:rgba(255,69,58,.6); }
+
+/* Ajuste de larguras no modo TV */
+.tv-mode .tickets{ grid-column: span 5; }
+.tv-mode .charts{ grid-column: span 7; }
+
 /* Quando sair do modo TV, não deixa "fantasma" de alturas */
 .content.panel{ min-height: 0; } /* garante que filhos possam rolar */
