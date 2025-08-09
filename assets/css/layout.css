@@ -23,7 +23,7 @@
 /* Responsivo */
 @media (max-width: 1200px){ .tickets{ grid-column: span 12 } .charts{ grid-column: span 12 } }
 @media (max-width: 900px){
-  .app{ grid-template-columns: 1fr; grid-template-rows: 64px auto 1fr; width:98vw; height:96vh }
+  .app{ grid-template-columns: 1fr; grid-template-rows: 64px auto 1fr; width:100vw; height:auto; min-height:100vh }
   .sidebar{ position: fixed; z-index: 10; left:12px; right:12px; top:12px; bottom:12px; transform: translateY(-8px) scale(.98); opacity:0; pointer-events:none; transition: opacity var(--transition), transform var(--transition); }
   .sidebar.open{ opacity:1; transform: translateY(0) scale(1); pointer-events:auto }
   .top{ grid-column:1 }
