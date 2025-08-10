@@ -43,6 +43,20 @@ const DB = {
     this.state.tickets.forEach(t=>{
       this.state.historyByTicket[t.id] = genHistory(t.concl);
     });
+  },
+  async addTicket(t){
+    const {id, ...data} = t;
+    this.state.tickets.push({id, ...data});
+    this.state.historyByTicket[id] = genHistory(data.concl || 0);
+    try{
+      await fetch('db.json', {
+        method:'PATCH',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({tickets:{[id]: data}})
+      });
+    }catch(e){
+      console.warn('Não foi possível persistir ticket', e);
+    }
   }
 };
 

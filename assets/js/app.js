@@ -121,12 +121,18 @@
       btnHamb: qs('#btnHamb'),
       btnTV: qs('#btnTV'),
       sidebar: qs('#sidebar'),
+      tabAdmin: qs('#tabAdmin'),
+      adminMenu: qs('#adminMenu'),
+      btnAdminCreateTicket: qs('#btnAdminCreateTicket'),
+      sectionCreateTicket: qs('#sectionCreateTicket'),
       _subtabsBound: false,
     };
 
-    // Oculta navegação de configurações para usuários comuns
-    if (CURRENT_ROLE !== 'admin' && els.tabConfig) {
-      els.tabConfig.style.display = 'none';
+    // Oculta itens de admin para usuários comuns
+    if (CURRENT_ROLE !== 'admin') {
+      if (els.tabConfig) els.tabConfig.style.display = 'none';
+      if (els.tabAdmin) els.tabAdmin.style.display = 'none';
+      if (els.adminMenu) els.adminMenu.style.display = 'none';
     }
 
     // Header: saudação + relógio
@@ -149,6 +155,7 @@
     const UI = {
       setActiveTab(which){
         [els.tabOverview, els.tabTickets, els.tabProjects].forEach(b=> b?.classList.remove('active'));
+        hide('#sectionCreateTicket');
 
         document.body.classList.remove('projects-page','tickets-page');
         if (which === 'projects') document.body.classList.add('projects-page');
@@ -292,6 +299,70 @@
     els.projectsCarousel.appendChild(el);
   });
 },
+
+      showCreateTicket(){
+        hide('#sectionTickets');
+        hide('#sectionCharts');
+        hide('#sectionProjects');
+        show('#sectionCreateTicket');
+        if (els.sectionPill) els.sectionPill.textContent = 'Criar chamado';
+        const form = qs('#createTicketForm');
+        if (form && !form.dataset.built) {
+          TICKET_FIELDS.forEach(f=>{
+            const wrap = document.createElement('div');
+            wrap.className = 'field';
+            const label = document.createElement('label');
+            label.textContent = TICKET_FIELD_LABELS[f];
+            let inp;
+            if (f === 'descricao') {
+              inp = document.createElement('textarea');
+            } else if (f === 'createdAt') {
+              inp = document.createElement('input');
+              inp.type = 'datetime-local';
+            } else {
+              inp = document.createElement('input');
+            }
+            inp.name = f;
+            wrap.appendChild(label);
+            wrap.appendChild(inp);
+            form.appendChild(wrap);
+          });
+          const actions = document.createElement('div');
+          actions.className = 'actions';
+          const btnSave = document.createElement('button');
+          btnSave.type = 'submit';
+          btnSave.className = 'save-btn';
+          btnSave.textContent = 'Salvar';
+          const btnCancel = document.createElement('button');
+          btnCancel.type = 'button';
+          btnCancel.id = 'cancelCreateTicket';
+          btnCancel.textContent = 'Cancelar';
+          actions.appendChild(btnSave);
+          actions.appendChild(btnCancel);
+          form.appendChild(actions);
+          const ui = this;
+          form.addEventListener('submit', async ev=>{
+            ev.preventDefault();
+            const fd = new FormData(form);
+            const t = {};
+            TICKET_FIELDS.forEach(f=> t[f] = fd.get(f));
+            t.concl = Number(t.concl || 0);
+            t.prazo = Number(t.prazo || 0);
+            const id = t.id;
+            const data = {...t};
+            delete data.id;
+            await DB.addTicket({id, ...data});
+            form.reset();
+            ui.renderTickets();
+            ui.setActiveTab('tickets');
+          });
+          btnCancel.addEventListener('click', ()=>{
+            form.reset();
+            ui.setActiveTab('overview');
+          });
+          form.dataset.built = '1';
+        }
+      },
 
 // *** ainda dentro de UI ***
 _selectedRow: null,
@@ -623,6 +694,12 @@ els.btnTV?.addEventListener('click', toggleTVMode);
     els.tabOverview?.addEventListener('click', ()=> UI.setActiveTab('overview'));
     els.tabTickets?.addEventListener('click', ()=> UI.setActiveTab('tickets'));
     els.tabProjects?.addEventListener('click', ()=> UI.setActiveTab('projects'));
+    els.tabAdmin?.addEventListener('click', ()=> els.adminMenu?.classList.toggle('open'));
+    els.btnAdminCreateTicket?.addEventListener('click', ()=>{
+      UI.showCreateTicket();
+      els.adminMenu?.classList.remove('open');
+      els.sidebar?.classList.remove('open');
+    });
 
     // Boot inicial
     UI.setActiveTab('overview');
