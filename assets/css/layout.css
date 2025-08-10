@@ -8,6 +8,9 @@
 .nav .navbtn{ text-align:left; background:#12161e; border:1px solid var(--card-border); padding:10px 12px; border-radius:10px; color:var(--text); cursor:pointer; transition:all var(--transition) }
 .nav .navbtn:hover{ transform:translateY(-1px); border-color:rgba(122,162,255,.45) }
 .nav .navbtn.active{ border-color: rgba(122,162,255,.6); box-shadow: 0 0 0 6px rgba(122,162,255,.12) inset; }
+.nav .admin-subnav{ display:none; gap:6px; padding-left:10px; }
+.nav .admin-subnav.open{ display:grid; }
+.nav .admin-subnav .navbtn{ font-size:13px; padding-left:20px; }
 
 .top{ grid-column: 2; height:64px; display:flex; align-items:center; justify-content:space-between; padding:0 16px; }
 .brand-inline{ display:flex; align-items:center; gap:10px; }
@@ -23,14 +26,15 @@
 /* Responsivo */
 @media (max-width: 1200px){ .tickets{ grid-column: span 12 } .charts{ grid-column: span 12 } }
 @media (max-width: 900px){
-  .app{ grid-template-columns: 1fr; grid-template-rows: 64px auto 1fr; width:98vw; height:96vh }
-  .sidebar{ position: fixed; z-index: 10; left:12px; right:12px; top:12px; bottom:12px; transform: translateY(-8px) scale(.98); opacity:0; pointer-events:none; transition: opacity var(--transition), transform var(--transition); }
+  .app{ grid-template-columns: 1fr; grid-template-rows: 64px auto 1fr; width:100vw; height:auto; min-height:100vh }
+  .sidebar{ position: fixed; z-index: 10; left:12px; right:12px; top:12px; bottom:12px; transform: translateY(-8px) scale(.98); opacity:0; pointer-events:none; transition: opacity var(--transition), transform var(--transition); background:#10141c; }
   .sidebar.open{ opacity:1; transform: translateY(0) scale(1); pointer-events:auto }
   .top{ grid-column:1 }
-  .hamburger{ display:block }
+  .hamburger{ display:block; position:relative; z-index:11 }
+  .tv-mode-btn{ display:none }
   .content{ grid-column:1; grid-template-columns: repeat(6, 1fr); }
 }
-@media (max-width: 560px){ .content{ grid-template-columns: repeat(2, 1fr) } }
+@media (max-width: 560px){ .content{ grid-template-columns: 1fr } }
 
 /* Páginas/estados */
 .projects-page .tickets, .projects-page .charts{ display:none }
