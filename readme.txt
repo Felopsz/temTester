@@ -13,7 +13,7 @@ Estrutura de arquivos
 
 Chamados criados pela interface recebem um ID único automaticamente e
 armazenam a data de prazo (`dueDate`). A porcentagem de prazo exibida
-representa quanto tempo resta até o prazo final, calculada
+representa quanto do prazo já foi consumido, calculada
 dinamicamente com base na data atual e na data limite.
 
 Cada arquivo JS é carregado no `index.html` usando a diretiva `defer` para manter a ordem e facilitar a manutenção dos módulos.

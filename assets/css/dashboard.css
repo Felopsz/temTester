@@ -143,7 +143,7 @@
 
 /* garante que cada coisa fique na linha certa */
 .tickets-page #sectionTickets > h2{ grid-area: title; margin:0; padding:0; line-height:1.1; }
-.tickets-page #sectionTickets .table-wrap{ grid-area: list; min-height:0; overflow:auto; }
+.tickets-page #sectionTickets .table-wrap{ grid-area: list; min-height:0; overflow:auto; height:100%; max-height:none; }
 .tickets-page #sectionTickets .ticket-detail{ grid-area: detail; min-height:0; overflow:auto; }
 
 /* largura total na aba Chamados */

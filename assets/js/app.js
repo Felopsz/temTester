@@ -93,16 +93,26 @@
     if (els.tdEditForm) els.tdEditForm.innerHTML = '';
   }
 
-  // Calcula % de prazo restante com base em createdAt e dueDate (clamped 0–100)
+  // Converte datas "YYYY-MM-DD" para o fim do dia local
+  function parseDateLocal(str){
+    if (!str) return new Date(NaN);
+    if (typeof str === 'string' && str.length <= 10){
+      const [y,m,d] = str.split('-').map(Number);
+      return new Date(y, m-1, d, 23, 59, 59);
+    }
+    return new Date(str);
+  }
+
+  // Calcula % de prazo consumido com base em createdAt e dueDate
   function computePrazoPct(createdAt, dueDate, now = new Date()){
-    const end = new Date(dueDate);
+    const end = parseDateLocal(dueDate);
     if (isNaN(end)) return 0;
-    let start = new Date(createdAt);
+    let start = parseDateLocal(createdAt);
     if (isNaN(start)) start = now;
     const total = end - start;
     if (total <= 0) return 0;
-    const remaining = end - now;
-    return Math.max(0, Math.min(100, Math.round((remaining / total) * 100)));
+    const elapsed = now - start;
+    return Math.max(0, Math.round((elapsed / total) * 100));
   }
 
   // ========== DASHBOARD ==========
@@ -212,7 +222,7 @@
         const t = this._selected || DB.state.tickets[0];
         this.renderProgressChart(DB.state.historyByTicket[t.id], 'chartProgress');
         const p = computePrazoPct(t.createdAt, t.dueDate);
-        this.renderSLAChart(t.concl, 100 - p, 'chartSLA');
+        this.renderSLAChart(t.concl, Math.min(p,100), 'chartSLA');
       },
 
       renderAll(){
@@ -237,14 +247,14 @@
             <th>Dupla</th>
             ${isTV() ? '<th class="col-resumo">Resumo</th>' : ''}
             <th>% de conclusão</th>
-            <th>% de prazo restante</th>
+            <th>% de prazo</th>
           `;
         }
 
         [...DB.state.tickets]
           .sort((a, b) => {
-            const da = new Date(a.dueDate);
-            const db = new Date(b.dueDate);
+            const da = parseDateLocal(a.dueDate);
+            const db = parseDateLocal(b.dueDate);
             if (isNaN(da)) return 1;
             if (isNaN(db)) return -1;
             return da - db;
@@ -252,7 +262,7 @@
           .forEach(t => {
           const tr = document.createElement('tr');
           const prazoPct = computePrazoPct(t.createdAt, t.dueDate);
-          const overdue = new Date(t.dueDate) < new Date();
+          const overdue = parseDateLocal(t.dueDate) < new Date();
           const prazoClass = overdue ? 'overdue' : '';
           tr.innerHTML = `
             <td data-label="ID do chamado"><button class="linklike" data-id="${t.id}">${t.id}</button></td>
@@ -269,7 +279,7 @@
             <td data-label="% de prazo">
               <div class="prog ${prazoClass}">
                 <div class="nums"><span>Prazo: <b>${prazoPct}%</b></span></div>
-                <div class="progress"><i style="width:${prazoPct}%"></i></div>
+                <div class="progress"><i style="width:${Math.min(prazoPct,100)}%"></i></div>
               </div>
             </td>
           `;
@@ -291,9 +301,9 @@
         els.projectsCarousel.innerHTML = '';
 
         [...DB.state.projects]
-          .sort((a, b) => new Date(a.prazo) - new Date(b.prazo))
+          .sort((a, b) => parseDateLocal(a.prazo) - parseDateLocal(b.prazo))
           .forEach(p => {
-          const daysLeft = Math.max(0, Math.ceil((new Date(p.prazo) - new Date())/86400000));
+          const daysLeft = Math.max(0, Math.ceil((parseDateLocal(p.prazo) - new Date())/86400000));
           const el = document.createElement('article');
           el.className = 'project';
 
@@ -304,7 +314,7 @@
             </header>
             <p class="proj-desc" style="color:#cbd5e1; font-size:13px">${p.desc}</p>
             <div class="meta">
-              <span>Prazo: <b>${new Date(p.prazo).toLocaleDateString('pt-BR')}</b></span>
+              <span>Prazo: <b>${parseDateLocal(p.prazo).toLocaleDateString('pt-BR')}</b></span>
               <span>Dias (estimado): <b>${p.dias}</b></span>
               <span>Pessoas: <b>${p.pessoas}</b></span>
               <span>Dias trabalhados: <b>${p.diasTrab}</b></span>
@@ -343,6 +353,7 @@
         if (form) {
           // Recria do zero SEM depender de dataset.built
           form.innerHTML = '';
+          form.autocomplete = 'off';
 
           // Renderiza os campos baseando-se em TICKET_FIELDS (exceto id), injeta dueDate se não existir
           const fieldsToRender = Array.isArray(window.TICKET_FIELDS)
@@ -390,6 +401,7 @@
               }
             }
             inp.name = f;
+            inp.autocomplete = 'off';
             wrap.appendChild(label);
             wrap.appendChild(inp);
             form.appendChild(wrap);
@@ -448,7 +460,7 @@
         if(rowEl){ rowEl.classList.add('selected'); this._selectedRow = rowEl; }
         this.renderProgressChart(DB.state.historyByTicket[t.id]);
         const p = computePrazoPct(t.createdAt, t.dueDate);
-        this.renderSLAChart(t.concl, 100 - p);
+        this.renderSLAChart(t.concl, Math.min(p,100));
       },
 
       openTicketDetail(t, rowEl){
@@ -459,8 +471,8 @@
         if (els.tdPct) els.tdPct.textContent = `${t.concl}%`;
         if (els.tdMeta) {
           const prazoPct = computePrazoPct(t.createdAt, t.dueDate);
-          const overdue = new Date(t.dueDate) < new Date();
-          const maybeDue = t.dueDate ? `<span><b>Prazo final:</b> ${new Date(t.dueDate).toLocaleDateString('pt-BR')}</span>` : '';
+          const overdue = parseDateLocal(t.dueDate) < new Date();
+          const maybeDue = t.dueDate ? `<span><b>Prazo final:</b> ${parseDateLocal(t.dueDate).toLocaleDateString('pt-BR')}</span>` : '';
           els.tdMeta.innerHTML = `
             <span><b>Data:</b> ${fmtDate(t.createdAt)}</span>
             <span><b>Aberto por:</b> ${t.solicitante}</span>
@@ -468,7 +480,7 @@
             <span><b>Ponto de encontro:</b> ${t.meetPoint}</span>
             <span><b>Dupla:</b> ${t.dupla}</span>
             ${maybeDue}
-            <span class="${overdue ? 'overdue' : ''}"><b>Prazo restante:</b> ${prazoPct}%</span>`;
+            <span class="${overdue ? 'overdue' : ''}"><b>Prazo consumido:</b> ${prazoPct}%</span>`;
         }
 
         if (els.tdDesc) {
@@ -485,6 +497,7 @@
           const form = document.createElement('form');
           form.id = 'editTicketForm';
           form.className = 'edit-form';
+          form.autocomplete = 'off';
 
           // Mesmo truque: garantir dueDate presente para edição
           const fieldsToRender = Array.isArray(window.TICKET_FIELDS) ? [...TICKET_FIELDS] : [];
@@ -518,13 +531,17 @@
             } else if (f === 'dueDate') {
               inp = document.createElement('input');
               inp.type = 'date';
-              if (t[f]) inp.value = new Date(t[f]).toISOString().slice(0,10);
+              if (t[f]) {
+                const d = parseDateLocal(t[f]);
+                if (!isNaN(d)) inp.value = d.toISOString().slice(0,10);
+              }
             } else {
               inp = document.createElement('input');
               inp.type = 'text';
               inp.value = t[f] ?? '';
             }
             inp.name = f;
+            inp.autocomplete = 'off';
             wrap.appendChild(label);
             wrap.appendChild(inp);
             form.appendChild(wrap);
@@ -593,7 +610,7 @@
         if (firstPanel){ firstPanel.classList.add('active'); firstPanel.style.display=''; }
       },
 
-      editTicket(t, updated){
+      async editTicket(t, updated){
         if (updated.id !== t.id){
           if (DB.state.rdosByTicket[t.id]){ DB.state.rdosByTicket[updated.id] = DB.state.rdosByTicket[t.id]; delete DB.state.rdosByTicket[t.id]; }
           if (DB.state.historyByTicket[t.id]){ DB.state.historyByTicket[updated.id] = DB.state.historyByTicket[t.id]; delete DB.state.historyByTicket[t.id]; }
@@ -601,12 +618,13 @@
         Object.assign(t, updated);
         DB.state.historyByTicket[t.id] = genHistory(t.concl);
         DB.state.tickets.sort((a, b) => {
-          const da = new Date(a.dueDate);
-          const db = new Date(b.dueDate);
+          const da = parseDateLocal(a.dueDate);
+          const db = parseDateLocal(b.dueDate);
           if (isNaN(da)) return 1;
           if (isNaN(db)) return -1;
           return da - db;
         });
+        await DB.updateTicket(t.id, t);
         UI.renderTickets();
         UI.openTicketDetail(t);
       },

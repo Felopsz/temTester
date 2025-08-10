@@ -22,6 +22,15 @@ function genHistory(finalPct){
   return pts;
 }
 
+function parseDateLocal(str){
+  if (!str) return new Date(NaN);
+  if (typeof str === 'string' && str.length <= 10){
+    const [y,m,d] = str.split('-').map(Number);
+    return new Date(y, m-1, d, 23, 59, 59);
+  }
+  return new Date(str);
+}
+
 const DB = {
   state: {
     tickets: [],
@@ -38,8 +47,8 @@ const DB = {
       .entries(data.tickets || {})
       .map(([id, t]) => ({ id, ...t }))
       .sort((a, b) => {
-        const da = new Date(a.dueDate);
-        const db = new Date(b.dueDate);
+        const da = parseDateLocal(a.dueDate);
+        const db = parseDateLocal(b.dueDate);
         if (isNaN(da)) return 1;
         if (isNaN(db)) return -1;
         return da - db;
@@ -47,7 +56,7 @@ const DB = {
     this.state.projects = Object
       .entries(data.projects || {})
       .map(([id, p]) => ({ id, ...p }))
-      .sort((a, b) => new Date(a.prazo) - new Date(b.prazo));
+      .sort((a, b) => parseDateLocal(a.prazo) - parseDateLocal(b.prazo));
     this.state.materialsByProject = data.materialsByProject || {};
     this.state.rdosByTicket = data.rdosByTicket || {};
     this.state.users = data.users || {};
@@ -72,8 +81,8 @@ const DB = {
     delete data.id;
     this.state.tickets.push({ id, ...data });
     this.state.tickets.sort((a, b) => {
-      const da = new Date(a.dueDate);
-      const db = new Date(b.dueDate);
+      const da = parseDateLocal(a.dueDate);
+      const db = parseDateLocal(b.dueDate);
       if (isNaN(da)) return 1;
       if (isNaN(db)) return -1;
       return da - db;
@@ -89,6 +98,20 @@ const DB = {
       console.warn('Não foi possível persistir ticket', e);
     }
     return id;
+  },
+  async updateTicket(id, data){
+    if (!id) return;
+    const copy = { ...data };
+    delete copy.id;
+    try{
+      await fetch('/api/db', {
+        method:'PATCH',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({tickets:{[id]: copy}})
+      });
+    }catch(e){
+      console.warn('Não foi possível persistir ticket', e);
+    }
   }
 };
 
