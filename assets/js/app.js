@@ -210,8 +210,7 @@
       _renderOverview(){
         const t = this._selected || DB.state.tickets[0];
         this.renderProgressChart(DB.state.historyByTicket[t.id], 'chartProgress');
-        // usa dueDate se existir; senão, cai no legado t.prazo
-        const p = t.dueDate ? computePrazoPct(t.createdAt, t.dueDate) : (t.prazo ?? 0);
+        const p = computePrazoPct(t.createdAt, t.dueDate);
         this.renderSLAChart(t.concl, p, 'chartSLA');
       },
 
@@ -241,9 +240,17 @@
           `;
         }
 
-        DB.state.tickets.forEach(t => {
+        [...DB.state.tickets]
+          .sort((a, b) => {
+            const da = new Date(a.dueDate);
+            const db = new Date(b.dueDate);
+            if (isNaN(da)) return 1;
+            if (isNaN(db)) return -1;
+            return da - db;
+          })
+          .forEach(t => {
           const tr = document.createElement('tr');
-          const prazoPct = t.dueDate ? computePrazoPct(t.createdAt, t.dueDate) : (t.prazo ?? 0);
+          const prazoPct = computePrazoPct(t.createdAt, t.dueDate);
           tr.innerHTML = `
             <td data-label="ID do chamado"><button class="linklike" data-id="${t.id}">${t.id}</button></td>
             <td data-label="Data de criação">${fmtDate(t.createdAt)}</td>
@@ -280,7 +287,9 @@
         if (!els.projectsCarousel) return;
         els.projectsCarousel.innerHTML = '';
 
-        DB.state.projects.forEach(p => {
+        [...DB.state.projects]
+          .sort((a, b) => new Date(a.prazo) - new Date(b.prazo))
+          .forEach(p => {
           const daysLeft = Math.max(0, Math.ceil((new Date(p.prazo) - new Date())/86400000));
           const el = document.createElement('article');
           el.className = 'project';
@@ -332,11 +341,13 @@
           // Recria do zero SEM depender de dataset.built
           form.innerHTML = '';
 
-          // Renderiza os campos baseando-se em TICKET_FIELDS, mas injeta dueDate se não existir
-          const fieldsToRender = Array.isArray(window.TICKET_FIELDS) ? [...TICKET_FIELDS] : [];
+          // Renderiza os campos baseando-se em TICKET_FIELDS (exceto id), injeta dueDate se não existir
+          const fieldsToRender = Array.isArray(window.TICKET_FIELDS)
+            ? TICKET_FIELDS.filter(f => f !== 'id')
+            : [];
           if (!fieldsToRender.includes('dueDate')) {
             const idx = Math.max(0, fieldsToRender.indexOf('createdAt'));
-            fieldsToRender.splice(idx+1, 0, 'dueDate');
+            fieldsToRender.splice(idx + 1, 0, 'dueDate');
           }
 
           fieldsToRender.forEach(f=>{
@@ -368,16 +379,10 @@
               inp = document.createElement('input');
               inp.type = 'date';
               inp.required = true;
-            } else if (f === 'prazo') {
-              // legado (se ainda existir no schema)
-              inp = document.createElement('input');
-              inp.type = 'number';
-              inp.min = '0'; inp.max = '100'; inp.step = '1';
-              inp.value = '0';
             } else {
               inp = document.createElement('input');
               inp.type = 'text';
-              if (['id','meetPoint','dupla','resumo','solicitante','telefone'].includes(f)) {
+              if (['meetPoint','dupla','resumo','solicitante','telefone'].includes(f)) {
                 inp.required = true;
               }
             }
@@ -408,16 +413,11 @@
             const fd = new FormData(form);
             const t = {};
             // inclui também dueDate se inserimos manualmente
-            const allKeys = new Set([...(window.TICKET_FIELDS||[]), 'dueDate']);
+            const allKeys = new Set([...(window.TICKET_FIELDS||[]).filter(f=>f!=='id'), 'dueDate']);
             allKeys.forEach(f=>{ if (fd.has(f)) t[f] = fd.get(f); });
 
-            if (!t.id || DB.state.tickets.some(x=> x.id === t.id)) {
-              alert('Defina um ID único para o chamado.');
-              return;
-            }
             t.concl = Number(t.concl || 0);
-            if (typeof t.prazo !== 'undefined') t.prazo = Number(t.prazo || 0); // compat legado
-            await DB.addTicket({id: t.id, ...t});
+            await DB.addTicket(t);
             form.reset();
             ui.renderTickets();
             ui.setActiveTab('tickets');
@@ -444,7 +444,7 @@
         if(this._selectedRow){ this._selectedRow.classList.remove('selected'); }
         if(rowEl){ rowEl.classList.add('selected'); this._selectedRow = rowEl; }
         this.renderProgressChart(DB.state.historyByTicket[t.id]);
-        const p = t.dueDate ? computePrazoPct(t.createdAt, t.dueDate) : (t.prazo ?? 0);
+        const p = computePrazoPct(t.createdAt, t.dueDate);
         this.renderSLAChart(t.concl, p);
       },
 
@@ -455,7 +455,7 @@
         if (els.tdTitle) els.tdTitle.textContent = t.id;
         if (els.tdPct) els.tdPct.textContent = `${t.concl}%`;
         if (els.tdMeta) {
-          const prazoPct = t.dueDate ? computePrazoPct(t.createdAt, t.dueDate) : (t.prazo ?? 0);
+          const prazoPct = computePrazoPct(t.createdAt, t.dueDate);
           const maybeDue = t.dueDate ? `<span><b>Prazo final:</b> ${new Date(t.dueDate).toLocaleDateString('pt-BR')}</span>` : '';
           els.tdMeta.innerHTML = `
             <span><b>Data:</b> ${fmtDate(t.createdAt)}</span>
@@ -515,10 +515,6 @@
               inp = document.createElement('input');
               inp.type = 'date';
               if (t[f]) inp.value = new Date(t[f]).toISOString().slice(0,10);
-            } else if (f === 'prazo') {
-              inp = document.createElement('input');
-              inp.type = 'number'; inp.min = '0'; inp.max = '100'; inp.step = '1';
-              inp.value = t[f] ?? 0;
             } else {
               inp = document.createElement('input');
               inp.type = 'text';
@@ -553,7 +549,6 @@
             const allKeys = new Set([...(window.TICKET_FIELDS||[]), 'dueDate']);
             allKeys.forEach(f=>{ if (fd.has(f)) updated[f] = fd.get(f); });
             updated.concl = Number(updated.concl || 0);
-            if (typeof updated.prazo !== 'undefined') updated.prazo = Number(updated.prazo || 0); // compat legado
             UI.editTicket(t, updated);
           });
           btnDel.addEventListener('click', ()=> UI.deleteTicket(t));
@@ -601,6 +596,13 @@
         }
         Object.assign(t, updated);
         DB.state.historyByTicket[t.id] = genHistory(t.concl);
+        DB.state.tickets.sort((a, b) => {
+          const da = new Date(a.dueDate);
+          const db = new Date(b.dueDate);
+          if (isNaN(da)) return 1;
+          if (isNaN(db)) return -1;
+          return da - db;
+        });
         UI.renderTickets();
         UI.openTicketDetail(t);
       },
