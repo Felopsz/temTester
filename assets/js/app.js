@@ -93,15 +93,16 @@
     if (els.tdEditForm) els.tdEditForm.innerHTML = '';
   }
 
-  // Calcula % de prazo consumido com base em createdAt e dueDate (clamped 0–100)
+  // Calcula % de prazo restante com base em createdAt e dueDate (clamped 0–100)
   function computePrazoPct(createdAt, dueDate, now = new Date()){
-    const start = new Date(createdAt);
     const end = new Date(dueDate);
-    if (isNaN(start) || isNaN(end)) return 0;
+    if (isNaN(end)) return 0;
+    let start = new Date(createdAt);
+    if (isNaN(start)) start = now;
     const total = end - start;
-    if (total <= 0) return 100;
-    const elapsed = Math.max(0, Math.min(total, now - start));
-    return Math.round((elapsed / total) * 100);
+    if (total <= 0) return 0;
+    const remaining = end - now;
+    return Math.max(0, Math.min(100, Math.round((remaining / total) * 100)));
   }
 
   // ========== DASHBOARD ==========
@@ -211,7 +212,7 @@
         const t = this._selected || DB.state.tickets[0];
         this.renderProgressChart(DB.state.historyByTicket[t.id], 'chartProgress');
         const p = computePrazoPct(t.createdAt, t.dueDate);
-        this.renderSLAChart(t.concl, p, 'chartSLA');
+        this.renderSLAChart(t.concl, 100 - p, 'chartSLA');
       },
 
       renderAll(){
@@ -236,7 +237,7 @@
             <th>Dupla</th>
             ${isTV() ? '<th class="col-resumo">Resumo</th>' : ''}
             <th>% de conclusão</th>
-            <th>% de prazo</th>
+            <th>% de prazo restante</th>
           `;
         }
 
@@ -251,6 +252,8 @@
           .forEach(t => {
           const tr = document.createElement('tr');
           const prazoPct = computePrazoPct(t.createdAt, t.dueDate);
+          const overdue = new Date(t.dueDate) < new Date();
+          const prazoClass = overdue ? 'overdue' : '';
           tr.innerHTML = `
             <td data-label="ID do chamado"><button class="linklike" data-id="${t.id}">${t.id}</button></td>
             <td data-label="Data de criação">${fmtDate(t.createdAt)}</td>
@@ -264,7 +267,7 @@
               </div>
             </td>
             <td data-label="% de prazo">
-              <div class="prog">
+              <div class="prog ${prazoClass}">
                 <div class="nums"><span>Prazo: <b>${prazoPct}%</b></span></div>
                 <div class="progress"><i style="width:${prazoPct}%"></i></div>
               </div>
@@ -445,7 +448,7 @@
         if(rowEl){ rowEl.classList.add('selected'); this._selectedRow = rowEl; }
         this.renderProgressChart(DB.state.historyByTicket[t.id]);
         const p = computePrazoPct(t.createdAt, t.dueDate);
-        this.renderSLAChart(t.concl, p);
+        this.renderSLAChart(t.concl, 100 - p);
       },
 
       openTicketDetail(t, rowEl){
@@ -456,6 +459,7 @@
         if (els.tdPct) els.tdPct.textContent = `${t.concl}%`;
         if (els.tdMeta) {
           const prazoPct = computePrazoPct(t.createdAt, t.dueDate);
+          const overdue = new Date(t.dueDate) < new Date();
           const maybeDue = t.dueDate ? `<span><b>Prazo final:</b> ${new Date(t.dueDate).toLocaleDateString('pt-BR')}</span>` : '';
           els.tdMeta.innerHTML = `
             <span><b>Data:</b> ${fmtDate(t.createdAt)}</span>
@@ -464,7 +468,7 @@
             <span><b>Ponto de encontro:</b> ${t.meetPoint}</span>
             <span><b>Dupla:</b> ${t.dupla}</span>
             ${maybeDue}
-            <span><b>Prazo consumido:</b> ${prazoPct}%</span>`;
+            <span class="${overdue ? 'overdue' : ''}"><b>Prazo restante:</b> ${prazoPct}%</span>`;
         }
 
         if (els.tdDesc) {

@@ -46,6 +46,11 @@
 .nums b{ color:#fff }
 .progress{ height:8px; background:#0f131a; border:1px solid var(--card-border); border-radius:8px; overflow:hidden }
 .progress > i{ display:block; height:100%; background: linear-gradient(180deg, var(--brand), var(--brand-strong)); width:0% }
+.prog.overdue .nums{ color:#f87171 }
+.prog.overdue .nums b{ color:#f87171 }
+.prog.overdue .progress{ border-color:#f87171 }
+.prog.overdue .progress > i{ background: linear-gradient(180deg, #f87171, #ef4444) }
+.overdue{ color:#f87171 }
 
 /* Gráficos (overview) */
 .charts{ grid-column: span 5; }
