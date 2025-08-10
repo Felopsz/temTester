@@ -34,3 +34,13 @@ body{
 /* barras de progresso padrão */
 .progress{ height:8px; background:#0f131a; border:1px solid var(--card-border); border-radius:8px; overflow:hidden }
 .progress > i{ display:block; height:100%; background: linear-gradient(180deg, var(--brand), var(--brand-strong)); width:0% }
+
+/* Ajustes para telas pequenas */
+@media (max-width: 900px){
+  body{
+    display:block;
+    place-items:initial;
+    overflow:auto;
+  }
+  .glow{display:none}
+}
