@@ -1,4 +1,5 @@
 (function(){
+  // App principal: fluxo de login, carregamento de dados e dashboard
   // ========== BOOT ==========
   document.addEventListener('DOMContentLoaded', () => {
     const loginView = qs('#view-login');
@@ -15,6 +16,7 @@
   });
 
   // ========== LOGIN ==========
+  // Valida usuário contra dados em db.json
   function bindLogin(){
     const viewLogin = qs('#view-login');
     const viewDash = qs('#view-dashboard');
@@ -43,11 +45,9 @@
         user.value=''; pass.value=''; enableContinueIfFilled();
       }, 200);
     };
-    const goToDashboard = async () => {
+    const goToDashboard = () => {
       viewLogin.style.display = 'none';
       viewDash.style.display = 'block';
-      CURRENT_USER = (user.value.trim() || 'admin');
-      await DB.load();
       initDashboard();
     };
 
@@ -64,12 +64,18 @@
     btnBack.addEventListener('click', goHome);
     user.addEventListener('input', enableContinueIfFilled);
     pass.addEventListener('input', enableContinueIfFilled);
-    form.addEventListener('submit', (e) => {
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
       if (btnContinue.disabled) return;
       const u = user.value.trim();
       const p = pass.value;
-      if (u === 'admin' && p === '1234') {
+      const res = await fetch('db.json');
+      const data = await res.json();
+      const account = data.users?.[u];
+      if (account && account.password === p) {
+        CURRENT_USER = u;
+        CURRENT_ROLE = account.role;
+        await DB.load(data);
         goToDashboard();
       } else {
         alert('Usuário ou senha inválidos.');
@@ -96,6 +102,7 @@
       tabOverview: qs('#tabOverview'),
       tabTickets: qs('#tabTickets'),
       tabProjects: qs('#tabProjects'),
+      tabConfig: qs('#tabConfig'),
       ticketsTableBody: qs('#ticketsTable tbody'),
       chartProgress: qs('#chartProgress'),
       chartSLA: qs('#chartSLA'),
@@ -116,6 +123,11 @@
       sidebar: qs('#sidebar'),
       _subtabsBound: false,
     };
+
+    // Oculta navegação de configurações para usuários comuns
+    if (CURRENT_ROLE !== 'admin' && els.tabConfig) {
+      els.tabConfig.style.display = 'none';
+    }
 
     // Header: saudação + relógio
     updateGreeting();

@@ -25,7 +25,7 @@ const tpl = {
           <div class="field">
             <label class="label" for="pass">Senha</label>
             <input class="input" id="pass" name="pass" type="password" placeholder="••••" autocomplete="current-password" />
-            <small class="label">Dica de teste: admin / 1234</small>
+            <small class="label">Dica de teste: admin / 1234 ou filipe / 1234</small>
           </div>
           <button id="btnContinue" class="continue" type="submit" disabled>Continuar</button>
         </form>
@@ -40,7 +40,8 @@ const tpl = {
             <button class="navbtn" id="tabTickets">Chamados</button>
             <button class="navbtn" id="tabReports">Relatórios</button>
             <button class="navbtn" id="tabProjects">Projetos</button>
-            <button class="navbtn">Configurações</button>
+            <!-- menu admin-only -->
+            <button class="navbtn" id="tabConfig">Configurações</button>
           </nav>
         </aside>
 
