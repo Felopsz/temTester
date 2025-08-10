@@ -69,7 +69,7 @@
       if (btnContinue.disabled) return;
       const u = user.value.trim();
       const p = pass.value;
-      const res = await fetch('db.json');
+      const res = await fetch('/api/db');
       const data = await res.json();
       const account = data.users?.[u];
       if (account && account.password === p) {

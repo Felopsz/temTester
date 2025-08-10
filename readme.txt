@@ -12,3 +12,11 @@ Estrutura de arquivos
 - assets/js/app.js: lógica principal da aplicação (login, dashboard, modo TV, etc.).
 
 Cada arquivo JS é carregado no `index.html` usando a diretiva `defer` para manter a ordem e facilitar a manutenção dos módulos.
+
+Servidor Node
+-------------
+Execute `npm start` para iniciar um servidor HTTP simples que também expõe uma API.
+
+Endpoints:
+- `GET /api/db` — retorna o conteúdo atual de `db.json`.
+- `PATCH /api/db` — mescla os dados enviados e persiste no `db.json`.

@@ -32,7 +32,7 @@ const DB = {
     users: {},
   },
   async load(rawData){
-    const data = rawData || await (await fetch('db.json')).json();
+    const data = rawData || await (await fetch('/api/db')).json();
     // tickets e projects vêm como objetos chaveados pelo ID
     this.state.tickets = Object.entries(data.tickets || {}).map(([id, t])=>({id, ...t}));
     this.state.projects = Object.entries(data.projects || {}).map(([id, p])=>({id, ...p}));
@@ -49,7 +49,7 @@ const DB = {
     this.state.tickets.push({id, ...data});
     this.state.historyByTicket[id] = genHistory(data.concl || 0);
     try{
-      await fetch('db.json', {
+      await fetch('/api/db', {
         method:'PATCH',
         headers:{'Content-Type':'application/json'},
         body: JSON.stringify({tickets:{[id]: data}})
