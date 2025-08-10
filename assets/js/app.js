@@ -1,4 +1,5 @@
 (function(){
+  // App principal: fluxo de login, carregamento de dados e dashboard
   // ========== BOOT ==========
   document.addEventListener('DOMContentLoaded', () => {
     const loginView = qs('#view-login');
@@ -15,6 +16,7 @@
   });
 
   // ========== LOGIN ==========
+  // Valida usuário contra dados em db.json
   function bindLogin(){
     const viewLogin = qs('#view-login');
     const viewDash = qs('#view-dashboard');
@@ -43,11 +45,9 @@
         user.value=''; pass.value=''; enableContinueIfFilled();
       }, 200);
     };
-    const goToDashboard = async () => {
+    const goToDashboard = () => {
       viewLogin.style.display = 'none';
       viewDash.style.display = 'block';
-      CURRENT_USER = (user.value.trim() || 'admin');
-      await DB.load();
       initDashboard();
     };
 
@@ -64,12 +64,18 @@
     btnBack.addEventListener('click', goHome);
     user.addEventListener('input', enableContinueIfFilled);
     pass.addEventListener('input', enableContinueIfFilled);
-    form.addEventListener('submit', (e) => {
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
       if (btnContinue.disabled) return;
       const u = user.value.trim();
       const p = pass.value;
-      if (u === 'admin' && p === '1234') {
+      const res = await fetch('db.json');
+      const data = await res.json();
+      const account = data.users?.[u];
+      if (account && account.password === p) {
+        CURRENT_USER = u;
+        CURRENT_ROLE = account.role;
+        await DB.load(data);
         goToDashboard();
       } else {
         alert('Usuário ou senha inválidos.');
@@ -96,6 +102,7 @@
       tabOverview: qs('#tabOverview'),
       tabTickets: qs('#tabTickets'),
       tabProjects: qs('#tabProjects'),
+      tabConfig: qs('#tabConfig'),
       ticketsTableBody: qs('#ticketsTable tbody'),
       chartProgress: qs('#chartProgress'),
       chartSLA: qs('#chartSLA'),
@@ -114,8 +121,19 @@
       btnHamb: qs('#btnHamb'),
       btnTV: qs('#btnTV'),
       sidebar: qs('#sidebar'),
+      tabAdmin: qs('#tabAdmin'),
+      adminMenu: qs('#adminMenu'),
+      btnAdminCreateTicket: qs('#btnAdminCreateTicket'),
+      sectionCreateTicket: qs('#sectionCreateTicket'),
       _subtabsBound: false,
     };
+
+    // Oculta itens de admin para usuários comuns
+    if (CURRENT_ROLE !== 'admin') {
+      if (els.tabConfig) els.tabConfig.style.display = 'none';
+      if (els.tabAdmin) els.tabAdmin.style.display = 'none';
+      if (els.adminMenu) els.adminMenu.style.display = 'none';
+    }
 
     // Header: saudação + relógio
     updateGreeting();
@@ -137,6 +155,7 @@
     const UI = {
       setActiveTab(which){
         [els.tabOverview, els.tabTickets, els.tabProjects].forEach(b=> b?.classList.remove('active'));
+        hide('#sectionCreateTicket');
 
         document.body.classList.remove('projects-page','tickets-page');
         if (which === 'projects') document.body.classList.add('projects-page');
@@ -281,6 +300,70 @@
   });
 },
 
+      showCreateTicket(){
+        hide('#sectionTickets');
+        hide('#sectionCharts');
+        hide('#sectionProjects');
+        show('#sectionCreateTicket');
+        if (els.sectionPill) els.sectionPill.textContent = 'Criar chamado';
+        const form = qs('#createTicketForm');
+        if (form && !form.dataset.built) {
+          TICKET_FIELDS.forEach(f=>{
+            const wrap = document.createElement('div');
+            wrap.className = 'field';
+            const label = document.createElement('label');
+            label.textContent = TICKET_FIELD_LABELS[f];
+            let inp;
+            if (f === 'descricao') {
+              inp = document.createElement('textarea');
+            } else if (f === 'createdAt') {
+              inp = document.createElement('input');
+              inp.type = 'datetime-local';
+            } else {
+              inp = document.createElement('input');
+            }
+            inp.name = f;
+            wrap.appendChild(label);
+            wrap.appendChild(inp);
+            form.appendChild(wrap);
+          });
+          const actions = document.createElement('div');
+          actions.className = 'actions';
+          const btnSave = document.createElement('button');
+          btnSave.type = 'submit';
+          btnSave.className = 'save-btn';
+          btnSave.textContent = 'Salvar';
+          const btnCancel = document.createElement('button');
+          btnCancel.type = 'button';
+          btnCancel.id = 'cancelCreateTicket';
+          btnCancel.textContent = 'Cancelar';
+          actions.appendChild(btnSave);
+          actions.appendChild(btnCancel);
+          form.appendChild(actions);
+          const ui = this;
+          form.addEventListener('submit', async ev=>{
+            ev.preventDefault();
+            const fd = new FormData(form);
+            const t = {};
+            TICKET_FIELDS.forEach(f=> t[f] = fd.get(f));
+            t.concl = Number(t.concl || 0);
+            t.prazo = Number(t.prazo || 0);
+            const id = t.id;
+            const data = {...t};
+            delete data.id;
+            await DB.addTicket({id, ...data});
+            form.reset();
+            ui.renderTickets();
+            ui.setActiveTab('tickets');
+          });
+          btnCancel.addEventListener('click', ()=>{
+            form.reset();
+            ui.setActiveTab('overview');
+          });
+          form.dataset.built = '1';
+        }
+      },
+
 // *** ainda dentro de UI ***
 _selectedRow: null,
 
@@ -381,7 +464,12 @@ openTicketDetail(t, rowEl){
 
       btn.classList.add('active');
       const panel = qs('#'+btn.dataset.tab, els.ticketDetail);
-      if (panel) { panel.classList.add('active'); panel.style.display = ''; }
+      if (panel) {
+        panel.classList.add('active');
+        panel.style.display = '';
+        panel.scrollTop = 0;
+      }
+      els.ticketDetail.scrollTop = 0;
     });
     els._subtabsBound = true;
   }
@@ -606,6 +694,12 @@ els.btnTV?.addEventListener('click', toggleTVMode);
     els.tabOverview?.addEventListener('click', ()=> UI.setActiveTab('overview'));
     els.tabTickets?.addEventListener('click', ()=> UI.setActiveTab('tickets'));
     els.tabProjects?.addEventListener('click', ()=> UI.setActiveTab('projects'));
+    els.tabAdmin?.addEventListener('click', ()=> els.adminMenu?.classList.toggle('open'));
+    els.btnAdminCreateTicket?.addEventListener('click', ()=>{
+      UI.showCreateTicket();
+      els.adminMenu?.classList.remove('open');
+      els.sidebar?.classList.remove('open');
+    });
 
     // Boot inicial
     UI.setActiveTab('overview');
