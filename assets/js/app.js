@@ -381,7 +381,12 @@ openTicketDetail(t, rowEl){
 
       btn.classList.add('active');
       const panel = qs('#'+btn.dataset.tab, els.ticketDetail);
-      if (panel) { panel.classList.add('active'); panel.style.display = ''; }
+      if (panel) {
+        panel.classList.add('active');
+        panel.style.display = '';
+        panel.scrollTop = 0;
+      }
+      els.ticketDetail.scrollTop = 0;
     });
     els._subtabsBound = true;
   }
