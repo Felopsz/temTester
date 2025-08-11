@@ -148,9 +148,21 @@
       btnAdminCreateTicket: qs('#btnAdminCreateTicket'),
       btnAdminCreateProject: qs('#btnAdminCreateProject'),
       btnAdminChanges: qs('#btnAdminChanges'),
+      btnAdminArchivedTickets: qs('#btnAdminArchivedTickets'),
+      btnAdminFinishedTickets: qs('#btnAdminFinishedTickets'),
+      btnAdminArchivedProjects: qs('#btnAdminArchivedProjects'),
+      btnAdminFinishedProjects: qs('#btnAdminFinishedProjects'),
       sectionCreateTicket: qs('#sectionCreateTicket'),
       sectionCreateProject: qs('#sectionCreateProject'),
       sectionAdminChanges: qs('#sectionAdminChanges'),
+      sectionArchivedTickets: qs('#sectionArchivedTickets'),
+      sectionFinishedTickets: qs('#sectionFinishedTickets'),
+      sectionArchivedProjects: qs('#sectionArchivedProjects'),
+      sectionFinishedProjects: qs('#sectionFinishedProjects'),
+      archivedTicketsBody: qs('#archivedTicketsTable tbody'),
+      finishedTicketsBody: qs('#finishedTicketsTable tbody'),
+      archivedProjectsBody: qs('#archivedProjectsTable tbody'),
+      finishedProjectsBody: qs('#finishedProjectsTable tbody'),
       logFilterDate: qs('#logFilterDate'),
       logsList: qs('#logsList'),
       _subtabsBound: false,
@@ -186,6 +198,10 @@
         hide('#sectionCreateTicket');
         hide('#sectionCreateProject');
         hide('#sectionAdminChanges');
+        hide('#sectionArchivedTickets');
+        hide('#sectionFinishedTickets');
+        hide('#sectionArchivedProjects');
+        hide('#sectionFinishedProjects');
 
         document.body.classList.remove('projects-page','tickets-page');
         if (which === 'projects') document.body.classList.add('projects-page');
@@ -236,6 +252,10 @@
       renderAll(){
         this.renderTickets();
         this.renderProjects();
+        this.renderArchivedTickets();
+        this.renderFinishedTickets();
+        this.renderArchivedProjects();
+        this.renderFinishedProjects();
         this.updateProjectArrows();
         if(!document.body.classList.contains('tickets-page') && !document.body.classList.contains('projects-page')){
           this._renderOverview();
@@ -340,7 +360,119 @@
           `;
 
           el.addEventListener('click', ()=> UI.openProjectDetailInline(p));
-          els.projectsCarousel.appendChild(el);
+        els.projectsCarousel.appendChild(el);
+      });
+      },
+
+      renderArchivedTickets(){
+        if(!els.archivedTicketsBody) return;
+        els.archivedTicketsBody.innerHTML='';
+        DB.state.archivedTickets.forEach(t=>{
+          const tr=document.createElement('tr');
+          const prazoPct=computePrazoPct(t.createdAt,t.dueDate);
+          const overdue=parseDateLocal(t.dueDate)<new Date();
+          const prazoClass=overdue?'overdue':'';
+          tr.innerHTML=`
+            <td data-label="ID do chamado">${t.id}</td>
+            <td data-label="Data de criação">${fmtDate(t.createdAt)}</td>
+            <td data-label="Ponto de encontro">${t.meetPoint}</td>
+            <td data-label="Dupla">${t.dupla}</td>
+            <td data-label="% de conclusão">
+              <div class="prog"><div class="nums"><span>Concl.: <b>${t.concl}%</b></span></div><div class="progress"><i style="width:${t.concl}%"></i></div></div>
+            </td>
+            <td data-label="% de prazo">
+              <div class="prog ${prazoClass}"><div class="nums"><span>Prazo: <b>${prazoPct}%</b></span></div><div class="progress"><i style="width:${Math.min(prazoPct,100)}%"></i></div></div>
+            </td>
+            <td data-label="Ações"><button class="restore" data-id="${t.id}">Desarquivar</button> <button class="delete" data-id="${t.id}">Excluir</button></td>
+          `;
+          els.archivedTicketsBody.appendChild(tr);
+        });
+        els.archivedTicketsBody.querySelectorAll('button.restore').forEach(btn=>{
+          const t=DB.state.archivedTickets.find(x=>x.id===btn.dataset.id);
+          btn.addEventListener('click',()=>UI.restoreTicket(t,'archived'));
+        });
+        els.archivedTicketsBody.querySelectorAll('button.delete').forEach(btn=>{
+          const t=DB.state.archivedTickets.find(x=>x.id===btn.dataset.id);
+          btn.addEventListener('click',()=>UI.deleteTicketPermanent(t,'archived'));
+        });
+      },
+
+      renderFinishedTickets(){
+        if(!els.finishedTicketsBody) return;
+        els.finishedTicketsBody.innerHTML='';
+        DB.state.finishedTickets.forEach(t=>{
+          const tr=document.createElement('tr');
+          const prazoPct=computePrazoPct(t.createdAt,t.dueDate);
+          const overdue=parseDateLocal(t.dueDate)<new Date();
+          const prazoClass=overdue?'overdue':'';
+          tr.innerHTML=`
+            <td data-label="ID do chamado">${t.id}</td>
+            <td data-label="Data de criação">${fmtDate(t.createdAt)}</td>
+            <td data-label="Ponto de encontro">${t.meetPoint}</td>
+            <td data-label="Dupla">${t.dupla}</td>
+            <td data-label="% de conclusão">
+              <div class="prog"><div class="nums"><span>Concl.: <b>${t.concl}%</b></span></div><div class="progress"><i style="width:${t.concl}%"></i></div></div>
+            </td>
+            <td data-label="% de prazo">
+              <div class="prog ${prazoClass}"><div class="nums"><span>Prazo: <b>${prazoPct}%</b></span></div><div class="progress"><i style="width:${Math.min(prazoPct,100)}%"></i></div></div>
+            </td>
+            <td data-label="Ações"><button class="restore" data-id="${t.id}">Desarquivar</button> <button class="delete" data-id="${t.id}">Excluir</button></td>
+          `;
+          els.finishedTicketsBody.appendChild(tr);
+        });
+        els.finishedTicketsBody.querySelectorAll('button.restore').forEach(btn=>{
+          const t=DB.state.finishedTickets.find(x=>x.id===btn.dataset.id);
+          btn.addEventListener('click',()=>UI.restoreTicket(t,'finished'));
+        });
+        els.finishedTicketsBody.querySelectorAll('button.delete').forEach(btn=>{
+          const t=DB.state.finishedTickets.find(x=>x.id===btn.dataset.id);
+          btn.addEventListener('click',()=>UI.deleteTicketPermanent(t,'finished'));
+        });
+      },
+
+      renderArchivedProjects(){
+        if(!els.archivedProjectsBody) return;
+        els.archivedProjectsBody.innerHTML='';
+        DB.state.archivedProjects.forEach(p=>{
+          const tr=document.createElement('tr');
+          tr.innerHTML=`
+            <td data-label="ID">${p.id}</td>
+            <td data-label="Nome">${p.name}</td>
+            <td data-label="Prazo">${parseDateLocal(p.prazo).toLocaleDateString('pt-BR')}</td>
+            <td data-label="Ações"><button class="restore" data-id="${p.id}">Desarquivar</button> <button class="delete" data-id="${p.id}">Excluir</button></td>
+          `;
+          els.archivedProjectsBody.appendChild(tr);
+        });
+        els.archivedProjectsBody.querySelectorAll('button.restore').forEach(btn=>{
+          const p=DB.state.archivedProjects.find(x=>x.id===btn.dataset.id);
+          btn.addEventListener('click',()=>UI.restoreProject(p,'archived'));
+        });
+        els.archivedProjectsBody.querySelectorAll('button.delete').forEach(btn=>{
+          const p=DB.state.archivedProjects.find(x=>x.id===btn.dataset.id);
+          btn.addEventListener('click',()=>UI.deleteProjectPermanent(p,'archived'));
+        });
+      },
+
+      renderFinishedProjects(){
+        if(!els.finishedProjectsBody) return;
+        els.finishedProjectsBody.innerHTML='';
+        DB.state.finishedProjects.forEach(p=>{
+          const tr=document.createElement('tr');
+          tr.innerHTML=`
+            <td data-label="ID">${p.id}</td>
+            <td data-label="Nome">${p.name}</td>
+            <td data-label="Prazo">${parseDateLocal(p.prazo).toLocaleDateString('pt-BR')}</td>
+            <td data-label="Ações"><button class="restore" data-id="${p.id}">Desarquivar</button> <button class="delete" data-id="${p.id}">Excluir</button></td>
+          `;
+          els.finishedProjectsBody.appendChild(tr);
+        });
+        els.finishedProjectsBody.querySelectorAll('button.restore').forEach(btn=>{
+          const p=DB.state.finishedProjects.find(x=>x.id===btn.dataset.id);
+          btn.addEventListener('click',()=>UI.restoreProject(p,'finished'));
+        });
+        els.finishedProjectsBody.querySelectorAll('button.delete').forEach(btn=>{
+          const p=DB.state.finishedProjects.find(x=>x.id===btn.dataset.id);
+          btn.addEventListener('click',()=>UI.deleteProjectPermanent(p,'finished'));
         });
       },
 
@@ -597,6 +729,39 @@
         })();
       },
 
+      showArchivedTickets(){
+        hide('#sectionTickets'); hide('#sectionCharts'); hide('#sectionProjects'); hide('#sectionCreateTicket'); hide('#sectionCreateProject'); hide('#sectionAdminChanges'); hide('#sectionFinishedTickets'); hide('#sectionArchivedProjects'); hide('#sectionFinishedProjects');
+        show('#sectionArchivedTickets');
+        document.body.classList.add('tickets-page');
+        document.body.classList.remove('projects-page');
+        if (els.sectionPill) els.sectionPill.textContent = 'Chamados arquivados';
+        this.renderArchivedTickets();
+      },
+      showFinishedTickets(){
+        hide('#sectionTickets'); hide('#sectionCharts'); hide('#sectionProjects'); hide('#sectionCreateTicket'); hide('#sectionCreateProject'); hide('#sectionAdminChanges'); hide('#sectionArchivedTickets'); hide('#sectionArchivedProjects'); hide('#sectionFinishedProjects');
+        show('#sectionFinishedTickets');
+        document.body.classList.add('tickets-page');
+        document.body.classList.remove('projects-page');
+        if (els.sectionPill) els.sectionPill.textContent = 'Chamados finalizados';
+        this.renderFinishedTickets();
+      },
+      showArchivedProjects(){
+        hide('#sectionTickets'); hide('#sectionCharts'); hide('#sectionProjects'); hide('#sectionCreateTicket'); hide('#sectionCreateProject'); hide('#sectionAdminChanges'); hide('#sectionArchivedTickets'); hide('#sectionFinishedTickets'); hide('#sectionFinishedProjects');
+        show('#sectionArchivedProjects');
+        document.body.classList.add('projects-page');
+        document.body.classList.remove('tickets-page');
+        if (els.sectionPill) els.sectionPill.textContent = 'Projetos arquivados';
+        this.renderArchivedProjects();
+      },
+      showFinishedProjects(){
+        hide('#sectionTickets'); hide('#sectionCharts'); hide('#sectionProjects'); hide('#sectionCreateTicket'); hide('#sectionCreateProject'); hide('#sectionAdminChanges'); hide('#sectionArchivedTickets'); hide('#sectionFinishedTickets'); hide('#sectionArchivedProjects');
+        show('#sectionFinishedProjects');
+        document.body.classList.add('projects-page');
+        document.body.classList.remove('tickets-page');
+        if (els.sectionPill) els.sectionPill.textContent = 'Projetos finalizados';
+        this.renderFinishedProjects();
+      },
+
       // *** ainda dentro de UI ***
       _selectedRow: null,
 
@@ -699,12 +864,18 @@
           btnSave.type = 'submit';
           btnSave.className = 'btn btn-primary';
           btnSave.textContent = 'Salvar';
+          const btnArchive = document.createElement('button');
+          btnArchive.type = 'button';
+          btnArchive.className = 'btn';
+          btnArchive.id = 'btnArchiveTicket';
+          btnArchive.textContent = 'Arquivar';
           const btnDel = document.createElement('button');
           btnDel.type = 'button';
           btnDel.className = 'del-btn btn';
           btnDel.id = 'btnDelTicket';
           btnDel.textContent = 'Excluir';
           actions.appendChild(btnSave);
+          actions.appendChild(btnArchive);
           actions.appendChild(btnDel);
           form.appendChild(actions);
           els.tdEditForm.appendChild(form);
@@ -718,6 +889,7 @@
             updated.concl = Number(updated.concl || 0);
             UI.editTicket(t, updated);
           });
+          btnArchive.addEventListener('click', ()=> UI.archiveTicket(t));
           btnDel.addEventListener('click', ()=> UI.deleteTicket(t));
         }
 
@@ -777,21 +949,29 @@
 
       async deleteTicket(t){
         if(!confirm('Excluir chamado?')) return;
-        DB.state.tickets = DB.state.tickets.filter(x=>x!==t);
-        delete DB.state.rdosByTicket[t.id];
-        delete DB.state.historyByTicket[t.id];
+        await DB.finishTicket(t);
         UI.renderTickets();
+        UI.renderFinishedTickets();
         clearTicketDetail(els);
-        try{
-          await fetch('/api/db', {
-            method:'PATCH',
-            headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({tickets:{[t.id]: null}})
-          });
-          await DB.log('deleteTicket', {id: t.id});
-        }catch(e){
-          console.warn('Não foi possível excluir ticket', e);
-        }
+      },
+      async archiveTicket(t){
+        if(!confirm('Arquivar chamado?')) return;
+        await DB.archiveTicket(t);
+        UI.renderTickets();
+        UI.renderArchivedTickets();
+        clearTicketDetail(els);
+      },
+      async restoreTicket(t, from){
+        await DB.restoreTicket(t, from);
+        UI.renderTickets();
+        UI.renderArchivedTickets();
+        UI.renderFinishedTickets();
+      },
+      async deleteTicketPermanent(t, from){
+        if(!confirm('Excluir definitivamente?')) return;
+        await DB.deleteTicketPermanent(t, from);
+        UI.renderArchivedTickets();
+        UI.renderFinishedTickets();
       },
 
       updateProject(p, updated){
@@ -809,22 +989,32 @@
 
       async deleteProject(p){
         if(!confirm('Excluir projeto?')) return;
-        DB.state.projects = DB.state.projects.filter(x=>x!==p);
-        delete DB.state.materialsByProject[p.id];
-        if (DB.state.rdosByProject[p.id]) delete DB.state.rdosByProject[p.id];
+        await DB.finishProject(p);
         UI.renderProjects();
+        UI.renderFinishedProjects();
         UI.updateProjectArrows();
         if(els.projDetailsInline) els.projDetailsInline.innerHTML = '';
-        try{
-          await fetch('/api/db', {
-            method:'PATCH',
-            headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({projects:{[p.id]: null}})
-          });
-          await DB.log('deleteProject', {id: p.id});
-        }catch(e){
-          console.warn('Não foi possível excluir projeto', e);
-        }
+      },
+      async archiveProject(p){
+        if(!confirm('Arquivar projeto?')) return;
+        await DB.archiveProject(p);
+        UI.renderProjects();
+        UI.renderArchivedProjects();
+        UI.updateProjectArrows();
+        if(els.projDetailsInline) els.projDetailsInline.innerHTML = '';
+      },
+      async restoreProject(p, from){
+        await DB.restoreProject(p, from);
+        UI.renderProjects();
+        UI.renderArchivedProjects();
+        UI.renderFinishedProjects();
+        UI.updateProjectArrows();
+      },
+      async deleteProjectPermanent(p, from){
+        if(!confirm('Excluir definitivamente?')) return;
+        await DB.deleteProjectPermanent(p, from);
+        UI.renderArchivedProjects();
+        UI.renderFinishedProjects();
       },
 
       // ===== Charts (andamento) =====
@@ -952,11 +1142,16 @@
         btnSave.type = 'submit';
         btnSave.className = 'btn btn-primary';
         btnSave.textContent = 'Salvar';
+        const btnArchive = document.createElement('button');
+        btnArchive.type = 'button';
+        btnArchive.className = 'btn';
+        btnArchive.textContent = 'Arquivar';
         const btnDel = document.createElement('button');
         btnDel.type = 'button';
         btnDel.className = 'btn';
         btnDel.textContent = 'Excluir';
         actions.appendChild(btnSave);
+        actions.appendChild(btnArchive);
         actions.appendChild(btnDel);
         form.appendChild(actions);
         const editWrap = qs('#pdEditForm', els.projDetailsInline);
@@ -969,6 +1164,7 @@
           fields.forEach(f=>{ if(fd.has(f)) updated[f] = fd.get(f); });
           UI.updateProject(p, updated);
         });
+        btnArchive.addEventListener('click', ()=> UI.archiveProject(p));
         btnDel.addEventListener('click', ()=> UI.deleteProject(p));
         const detail = els.projDetailsInline.querySelector('.project-detail-inline');
         els.projDetailsInline.scrollIntoView({behavior:'smooth', block:'start'});
@@ -1067,6 +1263,26 @@
     });
     els.btnAdminChanges?.addEventListener('click', ()=>{
       UI.showAdminChanges();
+      els.adminMenu?.classList.remove('open');
+      els.sidebar?.classList.remove('open');
+    });
+    els.btnAdminArchivedTickets?.addEventListener('click', ()=>{
+      UI.showArchivedTickets();
+      els.adminMenu?.classList.remove('open');
+      els.sidebar?.classList.remove('open');
+    });
+    els.btnAdminFinishedTickets?.addEventListener('click', ()=>{
+      UI.showFinishedTickets();
+      els.adminMenu?.classList.remove('open');
+      els.sidebar?.classList.remove('open');
+    });
+    els.btnAdminArchivedProjects?.addEventListener('click', ()=>{
+      UI.showArchivedProjects();
+      els.adminMenu?.classList.remove('open');
+      els.sidebar?.classList.remove('open');
+    });
+    els.btnAdminFinishedProjects?.addEventListener('click', ()=>{
+      UI.showFinishedProjects();
       els.adminMenu?.classList.remove('open');
       els.sidebar?.classList.remove('open');
     });

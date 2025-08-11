@@ -155,6 +155,80 @@ const tpl = {
             <h2>Novo projeto</h2>
             <form class="edit-form" id="createProjectForm"></form>
           </section>
+          <!-- ADMIN: chamados arquivados -->
+          <section class="section" id="sectionArchivedTickets" style="display:none">
+            <h2>Chamados arquivados</h2>
+            <div class="table-wrap">
+              <table class="table" id="archivedTicketsTable">
+                <thead>
+                  <tr>
+                    <th>ID do chamado</th>
+                    <th>Data de criação</th>
+                    <th>Ponto de encontro</th>
+                    <th>Dupla</th>
+                    <th>% de conclusão</th>
+                    <th>% de prazo</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </section>
+          <!-- ADMIN: chamados finalizados -->
+          <section class="section" id="sectionFinishedTickets" style="display:none">
+            <h2>Chamados finalizados</h2>
+            <div class="table-wrap">
+              <table class="table" id="finishedTicketsTable">
+                <thead>
+                  <tr>
+                    <th>ID do chamado</th>
+                    <th>Data de criação</th>
+                    <th>Ponto de encontro</th>
+                    <th>Dupla</th>
+                    <th>% de conclusão</th>
+                    <th>% de prazo</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </section>
+          <!-- ADMIN: projetos arquivados -->
+          <section class="section" id="sectionArchivedProjects" style="display:none">
+            <h2>Projetos arquivados</h2>
+            <div class="table-wrap">
+              <table class="table" id="archivedProjectsTable">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Nome</th>
+                    <th>Prazo</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </section>
+          <!-- ADMIN: projetos finalizados -->
+          <section class="section" id="sectionFinishedProjects" style="display:none">
+            <h2>Projetos finalizados</h2>
+            <div class="table-wrap">
+              <table class="table" id="finishedProjectsTable">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Nome</th>
+                    <th>Prazo</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </section>
           <!-- ADMIN: alterações -->
           <section class="section" id="sectionAdminChanges" style="display:none">
             <h2>Alterações</h2>

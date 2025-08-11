@@ -115,6 +115,8 @@
       "descricao": "Homologação final do link com validação de performance."
     }
   },
+  "archivedTickets": {},
+  "finishedTickets": {},
   "projects": {
     "PR-2001": {
       "name": "Integração CRM",
@@ -171,6 +173,8 @@
       "pct": 26
     }
   },
+  "archivedProjects": {},
+  "finishedProjects": {},
   "materialsByProject": {
     "PR-2001": ["API Key CRM", "Webhook /lead-created", "Tabela staging_crm", "Doc mapeamento campos"],
     "PR-2002": ["Design Figma Mobile", "SDK Camera", "GPS Provider", "Guia de acessibilidade"],
