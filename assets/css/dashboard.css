@@ -396,7 +396,8 @@ body.tv-mode .section{
 #sectionCreateTicket{ grid-column: 1 / -1; }
 
 /* Grid do form (desktop) */
-#sectionCreateTicket .edit-form{
+#sectionCreateTicket .edit-form,
+#sectionCreateProject .edit-form{
   max-width: none;
   width: 100%;
   display: grid;
@@ -406,26 +407,32 @@ body.tv-mode .section{
 
 /* Inputs sempre com largura visível */
 #sectionCreateTicket .edit-form input,
-#sectionCreateTicket .edit-form textarea{
+#sectionCreateTicket .edit-form textarea,
+#sectionCreateProject .edit-form input,
+#sectionCreateProject .edit-form textarea{
   width: 100%;
   display: block;
   border-color: rgba(255,255,255,.18); /* um pouco mais visível */
 }
 
 /* Botões no fim ocupando a linha inteira */
-#sectionCreateTicket .edit-form .actions{
+#sectionCreateTicket .edit-form .actions,
+#sectionCreateProject .edit-form .actions{
   grid-column: 1 / -1;
   display: flex;
   gap: 8px;
 }
 
 @media (max-width: 900px){
-  #sectionCreateTicket .edit-form{
+  #sectionCreateTicket .edit-form,
+  #sectionCreateProject .edit-form{
     grid-template-columns: 1fr;
   }
 }
 /* === Criar/Editar: layout premium === */
-#sectionCreateTicket{ grid-column: 1 / -1; }
+#sectionCreateTicket,
+#sectionCreateProject,
+#sectionAdminChanges{ grid-column: 1 / -1; }
 
 .edit-form{
   width: 100%;
@@ -487,28 +494,63 @@ body.tv-mode .section{
 @media (max-width: 900px){
   .edit-form .field{ grid-column: 1 / -1; }
 }
-/* === Scrollbar custom no content e no Criar Chamado === */
+/* === Scrollbar custom no content e em telas de administração === */
 .content.panel,
 #sectionCreateTicket,
-#sectionCreateTicket .edit-form {
+#sectionCreateTicket .edit-form,
+#sectionCreateProject,
+#sectionCreateProject .edit-form,
+#sectionAdminChanges,
+#sectionAdminChanges #logsList {
   scrollbar-width: thin;
   scrollbar-color: rgba(122,162,255,.5) rgba(255,255,255,.06);
 }
 .content.panel::-webkit-scrollbar,
 #sectionCreateTicket::-webkit-scrollbar,
-#sectionCreateTicket .edit-form::-webkit-scrollbar{
+#sectionCreateTicket .edit-form::-webkit-scrollbar,
+#sectionCreateProject::-webkit-scrollbar,
+#sectionCreateProject .edit-form::-webkit-scrollbar,
+#sectionAdminChanges::-webkit-scrollbar,
+#sectionAdminChanges #logsList::-webkit-scrollbar{
   width: 10px;
 }
 .content.panel::-webkit-scrollbar-track,
 #sectionCreateTicket::-webkit-scrollbar-track,
-#sectionCreateTicket .edit-form::-webkit-scrollbar-track{
+#sectionCreateTicket .edit-form::-webkit-scrollbar-track,
+#sectionCreateProject::-webkit-scrollbar-track,
+#sectionCreateProject .edit-form::-webkit-scrollbar-track,
+#sectionAdminChanges::-webkit-scrollbar-track,
+#sectionAdminChanges #logsList::-webkit-scrollbar-track{
   background: rgba(255,255,255,.06);
   border-radius: 10px;
 }
 .content.panel::-webkit-scrollbar-thumb,
 #sectionCreateTicket::-webkit-scrollbar-thumb,
-#sectionCreateTicket .edit-form::-webkit-scrollbar-thumb{
+#sectionCreateTicket .edit-form::-webkit-scrollbar-thumb,
+#sectionCreateProject::-webkit-scrollbar-thumb,
+#sectionCreateProject .edit-form::-webkit-scrollbar-thumb,
+#sectionAdminChanges::-webkit-scrollbar-thumb,
+#sectionAdminChanges #logsList::-webkit-scrollbar-thumb{
   background: linear-gradient(180deg, var(--brand), var(--brand-strong));
   border-radius: 10px;
   border: 2px solid rgba(255,255,255,.06);
+}
+
+/* Lista de logs organizada */
+#sectionAdminChanges #logsList{
+  list-style: none;
+  padding: 0;
+  margin-top: 8px;
+  display: grid;
+  gap: 8px;
+  max-height: clamp(220px, 40vh, 440px);
+  overflow: auto;
+}
+
+#sectionAdminChanges #logsList li{
+  background: #0f131a;
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-size: 13px;
 }
