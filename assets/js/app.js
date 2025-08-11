@@ -69,7 +69,7 @@
       if (btnContinue.disabled) return;
       const u = user.value.trim();
       const p = pass.value;
-      const res = await fetch('db.json');
+      const res = await fetch('/api/db');
       const data = await res.json();
       const account = data.users?.[u];
       if (account && account.password === p) {
@@ -93,15 +93,26 @@
     if (els.tdEditForm) els.tdEditForm.innerHTML = '';
   }
 
-  // Calcula % de prazo consumido com base em createdAt e dueDate (clamped 0–100)
+  // Converte datas "YYYY-MM-DD" para o fim do dia local
+  function parseDateLocal(str){
+    if (!str) return new Date(NaN);
+    if (typeof str === 'string' && str.length <= 10){
+      const [y,m,d] = str.split('-').map(Number);
+      return new Date(y, m-1, d, 23, 59, 59);
+    }
+    return new Date(str);
+  }
+
+  // Calcula % de prazo consumido com base em createdAt e dueDate
   function computePrazoPct(createdAt, dueDate, now = new Date()){
-    const start = new Date(createdAt);
-    const end = new Date(dueDate);
-    if (isNaN(start) || isNaN(end)) return 0;
+    const end = parseDateLocal(dueDate);
+    if (isNaN(end)) return 0;
+    let start = parseDateLocal(createdAt);
+    if (isNaN(start)) start = now;
     const total = end - start;
-    if (total <= 0) return 100;
-    const elapsed = Math.max(0, Math.min(total, now - start));
-    return Math.round((elapsed / total) * 100);
+    if (total <= 0) return 0;
+    const elapsed = now - start;
+    return Math.max(0, Math.round((elapsed / total) * 100));
   }
 
   // ========== DASHBOARD ==========
@@ -115,7 +126,6 @@
       tabProjects: qs('#tabProjects'),
       tabConfig: qs('#tabConfig'),
       ticketsTableBody: qs('#ticketsTable tbody'),
-      chartProgress: qs('#chartProgress'),
       chartSLA: qs('#chartSLA'),
       projectsCarousel: qs('#projectsCarousel'),
       caroPrev: qs('#caroPrev'),
@@ -135,7 +145,21 @@
       tabAdmin: qs('#tabAdmin'),
       adminMenu: qs('#adminMenu'),
       btnAdminCreateTicket: qs('#btnAdminCreateTicket'),
+      btnAdminCreateProject: qs('#btnAdminCreateProject'),
+      btnAdminArchivedTickets: qs('#btnAdminArchivedTickets'),
+      btnAdminFinishedTickets: qs('#btnAdminFinishedTickets'),
+      btnAdminArchivedProjects: qs('#btnAdminArchivedProjects'),
+      btnAdminFinishedProjects: qs('#btnAdminFinishedProjects'),
       sectionCreateTicket: qs('#sectionCreateTicket'),
+      sectionCreateProject: qs('#sectionCreateProject'),
+      sectionArchivedTickets: qs('#sectionArchivedTickets'),
+      sectionFinishedTickets: qs('#sectionFinishedTickets'),
+      sectionArchivedProjects: qs('#sectionArchivedProjects'),
+      sectionFinishedProjects: qs('#sectionFinishedProjects'),
+      archivedTicketsBody: qs('#archivedTicketsTable tbody'),
+      finishedTicketsBody: qs('#finishedTicketsTable tbody'),
+      archivedProjectsBody: qs('#archivedProjectsTable tbody'),
+      finishedProjectsBody: qs('#finishedProjectsTable tbody'),
       _subtabsBound: false,
     };
 
@@ -167,6 +191,11 @@
       setActiveTab(which){
         [els.tabOverview, els.tabTickets, els.tabProjects].forEach(b=> b?.classList.remove('active'));
         hide('#sectionCreateTicket');
+        hide('#sectionCreateProject');
+        hide('#sectionArchivedTickets');
+        hide('#sectionFinishedTickets');
+        hide('#sectionArchivedProjects');
+        hide('#sectionFinishedProjects');
 
         document.body.classList.remove('projects-page','tickets-page');
         if (which === 'projects') document.body.classList.add('projects-page');
@@ -209,15 +238,18 @@
 
       _renderOverview(){
         const t = this._selected || DB.state.tickets[0];
-        this.renderProgressChart(DB.state.historyByTicket[t.id], 'chartProgress');
-        // usa dueDate se existir; senão, cai no legado t.prazo
-        const p = t.dueDate ? computePrazoPct(t.createdAt, t.dueDate) : (t.prazo ?? 0);
-        this.renderSLAChart(t.concl, p, 'chartSLA');
+        if (!t) return;
+        const p = computePrazoPct(t.createdAt, t.dueDate);
+        this.renderSLAChart(t.concl, Math.min(p,100), 'chartSLA');
       },
 
       renderAll(){
         this.renderTickets();
         this.renderProjects();
+        this.renderArchivedTickets();
+        this.renderFinishedTickets();
+        this.renderArchivedProjects();
+        this.renderFinishedProjects();
         this.updateProjectArrows();
         if(!document.body.classList.contains('tickets-page') && !document.body.classList.contains('projects-page')){
           this._renderOverview();
@@ -241,9 +273,19 @@
           `;
         }
 
-        DB.state.tickets.forEach(t => {
+        [...DB.state.tickets]
+          .sort((a, b) => {
+            const da = parseDateLocal(a.dueDate);
+            const db = parseDateLocal(b.dueDate);
+            if (isNaN(da)) return 1;
+            if (isNaN(db)) return -1;
+            return da - db;
+          })
+          .forEach(t => {
           const tr = document.createElement('tr');
-          const prazoPct = t.dueDate ? computePrazoPct(t.createdAt, t.dueDate) : (t.prazo ?? 0);
+          const prazoPct = computePrazoPct(t.createdAt, t.dueDate);
+          const overdue = parseDateLocal(t.dueDate) < new Date();
+          const prazoClass = overdue ? 'overdue' : '';
           tr.innerHTML = `
             <td data-label="ID do chamado"><button class="linklike" data-id="${t.id}">${t.id}</button></td>
             <td data-label="Data de criação">${fmtDate(t.createdAt)}</td>
@@ -257,9 +299,9 @@
               </div>
             </td>
             <td data-label="% de prazo">
-              <div class="prog">
+              <div class="prog ${prazoClass}">
                 <div class="nums"><span>Prazo: <b>${prazoPct}%</b></span></div>
-                <div class="progress"><i style="width:${prazoPct}%"></i></div>
+                <div class="progress"><i style="width:${Math.min(prazoPct,100)}%"></i></div>
               </div>
             </td>
           `;
@@ -280,8 +322,10 @@
         if (!els.projectsCarousel) return;
         els.projectsCarousel.innerHTML = '';
 
-        DB.state.projects.forEach(p => {
-          const daysLeft = Math.max(0, Math.ceil((new Date(p.prazo) - new Date())/86400000));
+        [...DB.state.projects]
+          .sort((a, b) => parseDateLocal(a.prazo) - parseDateLocal(b.prazo))
+          .forEach(p => {
+          const daysLeft = Math.max(0, Math.ceil((parseDateLocal(p.prazo) - new Date())/86400000));
           const el = document.createElement('article');
           el.className = 'project';
 
@@ -292,7 +336,7 @@
             </header>
             <p class="proj-desc" style="color:#cbd5e1; font-size:13px">${p.desc}</p>
             <div class="meta">
-              <span>Prazo: <b>${new Date(p.prazo).toLocaleDateString('pt-BR')}</b></span>
+              <span>Prazo: <b>${parseDateLocal(p.prazo).toLocaleDateString('pt-BR')}</b></span>
               <span>Dias (estimado): <b>${p.dias}</b></span>
               <span>Pessoas: <b>${p.pessoas}</b></span>
               <span>Dias trabalhados: <b>${p.diasTrab}</b></span>
@@ -310,7 +354,119 @@
           `;
 
           el.addEventListener('click', ()=> UI.openProjectDetailInline(p));
-          els.projectsCarousel.appendChild(el);
+        els.projectsCarousel.appendChild(el);
+      });
+      },
+
+      renderArchivedTickets(){
+        if(!els.archivedTicketsBody) return;
+        els.archivedTicketsBody.innerHTML='';
+        DB.state.archivedTickets.forEach(t=>{
+          const tr=document.createElement('tr');
+          const prazoPct=computePrazoPct(t.createdAt,t.dueDate);
+          const overdue=parseDateLocal(t.dueDate)<new Date();
+          const prazoClass=overdue?'overdue':'';
+          tr.innerHTML=`
+            <td data-label="ID do chamado">${t.id}</td>
+            <td data-label="Data de criação">${fmtDate(t.createdAt)}</td>
+            <td data-label="Ponto de encontro">${t.meetPoint}</td>
+            <td data-label="Dupla">${t.dupla}</td>
+            <td data-label="% de conclusão">
+              <div class="prog"><div class="nums"><span>Concl.: <b>${t.concl}%</b></span></div><div class="progress"><i style="width:${t.concl}%"></i></div></div>
+            </td>
+            <td data-label="% de prazo">
+              <div class="prog ${prazoClass}"><div class="nums"><span>Prazo: <b>${prazoPct}%</b></span></div><div class="progress"><i style="width:${Math.min(prazoPct,100)}%"></i></div></div>
+            </td>
+            <td data-label="Ações"><button class="restore" data-id="${t.id}">Desarquivar</button> <button class="delete" data-id="${t.id}">Excluir</button></td>
+          `;
+          els.archivedTicketsBody.appendChild(tr);
+        });
+        els.archivedTicketsBody.querySelectorAll('button.restore').forEach(btn=>{
+          const t=DB.state.archivedTickets.find(x=>x.id===btn.dataset.id);
+          btn.addEventListener('click',()=>UI.restoreTicket(t,'archived'));
+        });
+        els.archivedTicketsBody.querySelectorAll('button.delete').forEach(btn=>{
+          const t=DB.state.archivedTickets.find(x=>x.id===btn.dataset.id);
+          btn.addEventListener('click',()=>UI.deleteTicketPermanent(t,'archived'));
+        });
+      },
+
+      renderFinishedTickets(){
+        if(!els.finishedTicketsBody) return;
+        els.finishedTicketsBody.innerHTML='';
+        DB.state.finishedTickets.forEach(t=>{
+          const tr=document.createElement('tr');
+          const prazoPct=computePrazoPct(t.createdAt,t.dueDate);
+          const overdue=parseDateLocal(t.dueDate)<new Date();
+          const prazoClass=overdue?'overdue':'';
+          tr.innerHTML=`
+            <td data-label="ID do chamado">${t.id}</td>
+            <td data-label="Data de criação">${fmtDate(t.createdAt)}</td>
+            <td data-label="Ponto de encontro">${t.meetPoint}</td>
+            <td data-label="Dupla">${t.dupla}</td>
+            <td data-label="% de conclusão">
+              <div class="prog"><div class="nums"><span>Concl.: <b>${t.concl}%</b></span></div><div class="progress"><i style="width:${t.concl}%"></i></div></div>
+            </td>
+            <td data-label="% de prazo">
+              <div class="prog ${prazoClass}"><div class="nums"><span>Prazo: <b>${prazoPct}%</b></span></div><div class="progress"><i style="width:${Math.min(prazoPct,100)}%"></i></div></div>
+            </td>
+            <td data-label="Ações"><button class="restore" data-id="${t.id}">Desarquivar</button> <button class="delete" data-id="${t.id}">Excluir</button></td>
+          `;
+          els.finishedTicketsBody.appendChild(tr);
+        });
+        els.finishedTicketsBody.querySelectorAll('button.restore').forEach(btn=>{
+          const t=DB.state.finishedTickets.find(x=>x.id===btn.dataset.id);
+          btn.addEventListener('click',()=>UI.restoreTicket(t,'finished'));
+        });
+        els.finishedTicketsBody.querySelectorAll('button.delete').forEach(btn=>{
+          const t=DB.state.finishedTickets.find(x=>x.id===btn.dataset.id);
+          btn.addEventListener('click',()=>UI.deleteTicketPermanent(t,'finished'));
+        });
+      },
+
+      renderArchivedProjects(){
+        if(!els.archivedProjectsBody) return;
+        els.archivedProjectsBody.innerHTML='';
+        DB.state.archivedProjects.forEach(p=>{
+          const tr=document.createElement('tr');
+          tr.innerHTML=`
+            <td data-label="ID">${p.id}</td>
+            <td data-label="Nome">${p.name}</td>
+            <td data-label="Prazo">${parseDateLocal(p.prazo).toLocaleDateString('pt-BR')}</td>
+            <td data-label="Ações"><button class="restore" data-id="${p.id}">Desarquivar</button> <button class="delete" data-id="${p.id}">Excluir</button></td>
+          `;
+          els.archivedProjectsBody.appendChild(tr);
+        });
+        els.archivedProjectsBody.querySelectorAll('button.restore').forEach(btn=>{
+          const p=DB.state.archivedProjects.find(x=>x.id===btn.dataset.id);
+          btn.addEventListener('click',()=>UI.restoreProject(p,'archived'));
+        });
+        els.archivedProjectsBody.querySelectorAll('button.delete').forEach(btn=>{
+          const p=DB.state.archivedProjects.find(x=>x.id===btn.dataset.id);
+          btn.addEventListener('click',()=>UI.deleteProjectPermanent(p,'archived'));
+        });
+      },
+
+      renderFinishedProjects(){
+        if(!els.finishedProjectsBody) return;
+        els.finishedProjectsBody.innerHTML='';
+        DB.state.finishedProjects.forEach(p=>{
+          const tr=document.createElement('tr');
+          tr.innerHTML=`
+            <td data-label="ID">${p.id}</td>
+            <td data-label="Nome">${p.name}</td>
+            <td data-label="Prazo">${parseDateLocal(p.prazo).toLocaleDateString('pt-BR')}</td>
+            <td data-label="Ações"><button class="restore" data-id="${p.id}">Desarquivar</button> <button class="delete" data-id="${p.id}">Excluir</button></td>
+          `;
+          els.finishedProjectsBody.appendChild(tr);
+        });
+        els.finishedProjectsBody.querySelectorAll('button.restore').forEach(btn=>{
+          const p=DB.state.finishedProjects.find(x=>x.id===btn.dataset.id);
+          btn.addEventListener('click',()=>UI.restoreProject(p,'finished'));
+        });
+        els.finishedProjectsBody.querySelectorAll('button.delete').forEach(btn=>{
+          const p=DB.state.finishedProjects.find(x=>x.id===btn.dataset.id);
+          btn.addEventListener('click',()=>UI.deleteProjectPermanent(p,'finished'));
         });
       },
 
@@ -318,7 +474,9 @@
         hide('#sectionTickets');
         hide('#sectionCharts');
         hide('#sectionProjects');
+        hide('#sectionCreateProject');
         show('#sectionCreateTicket');
+        document.body.classList.remove('tickets-page','projects-page');
         if (els.sectionPill) els.sectionPill.textContent = 'Criar chamado';
 
         // garante que o painel entre em cena com scroll e foco
@@ -331,12 +489,15 @@
         if (form) {
           // Recria do zero SEM depender de dataset.built
           form.innerHTML = '';
+          form.autocomplete = 'off';
 
-          // Renderiza os campos baseando-se em TICKET_FIELDS, mas injeta dueDate se não existir
-          const fieldsToRender = Array.isArray(window.TICKET_FIELDS) ? [...TICKET_FIELDS] : [];
+          // Renderiza os campos baseando-se em TICKET_FIELDS, injeta dueDate se não existir
+          const fieldsToRender = Array.isArray(window.TICKET_FIELDS)
+            ? [...TICKET_FIELDS]
+            : [];
           if (!fieldsToRender.includes('dueDate')) {
             const idx = Math.max(0, fieldsToRender.indexOf('createdAt'));
-            fieldsToRender.splice(idx+1, 0, 'dueDate');
+            fieldsToRender.splice(idx + 1, 0, 'dueDate');
           }
 
           fieldsToRender.forEach(f=>{
@@ -350,6 +511,13 @@
             if (f === 'descricao') {
               inp = document.createElement('textarea');
               inp.required = true;
+            } else if (f === 'id') {
+              inp = document.createElement('input');
+              inp.type = 'text';
+              inp.required = true;
+              if (DB && typeof DB.genTicketId === 'function') {
+                inp.value = DB.genTicketId();
+              }
             } else if (f === 'createdAt') {
               inp = document.createElement('input');
               inp.type = 'datetime-local';
@@ -368,20 +536,15 @@
               inp = document.createElement('input');
               inp.type = 'date';
               inp.required = true;
-            } else if (f === 'prazo') {
-              // legado (se ainda existir no schema)
-              inp = document.createElement('input');
-              inp.type = 'number';
-              inp.min = '0'; inp.max = '100'; inp.step = '1';
-              inp.value = '0';
             } else {
               inp = document.createElement('input');
               inp.type = 'text';
-              if (['id','meetPoint','dupla','resumo','solicitante','telefone'].includes(f)) {
+              if (['meetPoint','dupla','resumo','solicitante','telefone'].includes(f)) {
                 inp.required = true;
               }
             }
             inp.name = f;
+            inp.autocomplete = 'off';
             wrap.appendChild(label);
             wrap.appendChild(inp);
             form.appendChild(wrap);
@@ -407,22 +570,18 @@
             ev.preventDefault();
             const fd = new FormData(form);
             const t = {};
-            // inclui também dueDate se inserimos manualmente
-            const allKeys = new Set([...(window.TICKET_FIELDS||[]), 'dueDate']);
-            allKeys.forEach(f=>{ if (fd.has(f)) t[f] = fd.get(f); });
-
-            if (!t.id || DB.state.tickets.some(x=> x.id === t.id)) {
-              alert('Defina um ID único para o chamado.');
-              return;
-            }
+            fieldsToRender.forEach(f=>{ if (fd.has(f)) t[f] = fd.get(f); });
             t.concl = Number(t.concl || 0);
-            if (typeof t.prazo !== 'undefined') t.prazo = Number(t.prazo || 0); // compat legado
-            await DB.addTicket({id: t.id, ...t});
-            form.reset();
-            ui.renderTickets();
-            ui.setActiveTab('tickets');
-            els.adminMenu?.classList.remove('open');
-            els.sidebar?.classList.remove('open');
+            try{
+              await DB.addTicket(t);
+              form.reset();
+              ui.renderTickets();
+              ui.setActiveTab('tickets');
+              els.adminMenu?.classList.remove('open');
+              els.sidebar?.classList.remove('open');
+            }catch(e){
+              alert(e.message || 'Erro ao salvar chamado');
+            }
           });
           qs('#cancelCreateTicket')?.addEventListener('click', ()=>{
             form.reset();
@@ -436,6 +595,139 @@
         }
       },
 
+      showCreateProject(){
+        hide('#sectionTickets');
+        hide('#sectionCharts');
+        hide('#sectionProjects');
+        hide('#sectionCreateTicket');
+        show('#sectionCreateProject');
+        document.body.classList.remove('tickets-page','projects-page');
+        if (els.sectionPill) els.sectionPill.textContent = 'Criar projeto';
+
+        requestAnimationFrame(()=>{
+          qs('#sectionCreateProject')?.scrollIntoView({behavior:'smooth', block:'start'});
+          qs('#createProjectForm input, #createProjectForm textarea')?.focus();
+        });
+
+        const form = qs('#createProjectForm');
+        if (form){
+          form.innerHTML='';
+          form.autocomplete='off';
+          const fields=['id','name','desc','prazo','dias','pessoas','diasTrab','pct'];
+          const labels={id:'ID',name:'Nome',desc:'Descrição',prazo:'Prazo',dias:'Dias',pessoas:'Pessoas',diasTrab:'Dias trabalhados',pct:'% de conclusão'};
+          fields.forEach(f=>{
+            const wrap=document.createElement('div');
+            wrap.className='field'+(f==='desc'?' full':'');
+            const label=document.createElement('label');
+            label.textContent=labels[f] || f;
+            let inp;
+            if(f==='desc'){
+              inp=document.createElement('textarea');
+              inp.required=true;
+            }else if(f==='id'){
+              inp=document.createElement('input');
+              inp.type='text';
+              inp.required=true;
+              if(DB && typeof DB.genProjectId==='function'){
+                inp.value=DB.genProjectId();
+              }
+            }else if(f==='prazo'){
+              inp=document.createElement('input');
+              inp.type='date';
+              inp.required=true;
+            }else if(['dias','pessoas','diasTrab','pct'].includes(f)){
+              inp=document.createElement('input');
+              inp.type='number';
+              inp.min='0';
+            }else{
+              inp=document.createElement('input');
+              inp.type='text';
+              inp.required=true;
+            }
+            inp.name=f;
+            inp.autocomplete='off';
+            wrap.appendChild(label);
+            wrap.appendChild(inp);
+            form.appendChild(wrap);
+          });
+
+          const actions=document.createElement('div');
+          actions.className='actions';
+          const btnSave=document.createElement('button');
+          btnSave.type='submit';
+          btnSave.className='btn btn-primary';
+          btnSave.textContent='Salvar';
+          const btnCancel=document.createElement('button');
+          btnCancel.type='button';
+          btnCancel.className='btn';
+          btnCancel.id='cancelCreateProject';
+          btnCancel.textContent='Cancelar';
+          actions.appendChild(btnSave);
+          actions.appendChild(btnCancel);
+          form.appendChild(actions);
+
+          const ui=this;
+          form.addEventListener('submit', async ev=>{
+            ev.preventDefault();
+            const fd=new FormData(form);
+            const proj={};
+            fields.forEach(f=>{ if(fd.has(f)) proj[f]=fd.get(f); });
+            ['dias','pessoas','diasTrab','pct'].forEach(k=>{ proj[k]=Number(proj[k]||0); });
+            try{
+              await DB.addProject(proj);
+              form.reset();
+              ui.renderProjects();
+              ui.updateProjectArrows();
+              ui.setActiveTab('projects');
+            }catch(e){
+              alert(e.message || 'Erro ao salvar projeto');
+            }
+          });
+          qs('#cancelCreateProject')?.addEventListener('click', ()=>{
+            form.reset();
+            ui.setActiveTab('overview');
+          });
+
+          requestAnimationFrame(()=>{
+            qs('#createProjectForm input, #createProjectForm textarea')?.focus();
+          });
+        }
+      },
+
+
+      showArchivedTickets(){
+        hide('#sectionTickets'); hide('#sectionCharts'); hide('#sectionProjects'); hide('#sectionCreateTicket'); hide('#sectionCreateProject'); hide('#sectionFinishedTickets'); hide('#sectionArchivedProjects'); hide('#sectionFinishedProjects');
+        show('#sectionArchivedTickets');
+        document.body.classList.add('tickets-page');
+        document.body.classList.remove('projects-page');
+        if (els.sectionPill) els.sectionPill.textContent = 'Chamados arquivados';
+        this.renderArchivedTickets();
+      },
+      showFinishedTickets(){
+        hide('#sectionTickets'); hide('#sectionCharts'); hide('#sectionProjects'); hide('#sectionCreateTicket'); hide('#sectionCreateProject'); hide('#sectionArchivedTickets'); hide('#sectionArchivedProjects'); hide('#sectionFinishedProjects');
+        show('#sectionFinishedTickets');
+        document.body.classList.add('tickets-page');
+        document.body.classList.remove('projects-page');
+        if (els.sectionPill) els.sectionPill.textContent = 'Chamados finalizados';
+        this.renderFinishedTickets();
+      },
+      showArchivedProjects(){
+        hide('#sectionTickets'); hide('#sectionCharts'); hide('#sectionProjects'); hide('#sectionCreateTicket'); hide('#sectionCreateProject'); hide('#sectionArchivedTickets'); hide('#sectionFinishedTickets'); hide('#sectionFinishedProjects');
+        show('#sectionArchivedProjects');
+        document.body.classList.add('projects-page');
+        document.body.classList.remove('tickets-page');
+        if (els.sectionPill) els.sectionPill.textContent = 'Projetos arquivados';
+        this.renderArchivedProjects();
+      },
+      showFinishedProjects(){
+        hide('#sectionTickets'); hide('#sectionCharts'); hide('#sectionProjects'); hide('#sectionCreateTicket'); hide('#sectionCreateProject'); hide('#sectionArchivedTickets'); hide('#sectionFinishedTickets'); hide('#sectionArchivedProjects');
+        show('#sectionFinishedProjects');
+        document.body.classList.add('projects-page');
+        document.body.classList.remove('tickets-page');
+        if (els.sectionPill) els.sectionPill.textContent = 'Projetos finalizados';
+        this.renderFinishedProjects();
+      },
+
       // *** ainda dentro de UI ***
       _selectedRow: null,
 
@@ -443,9 +735,8 @@
         this._selected = t;
         if(this._selectedRow){ this._selectedRow.classList.remove('selected'); }
         if(rowEl){ rowEl.classList.add('selected'); this._selectedRow = rowEl; }
-        this.renderProgressChart(DB.state.historyByTicket[t.id]);
-        const p = t.dueDate ? computePrazoPct(t.createdAt, t.dueDate) : (t.prazo ?? 0);
-        this.renderSLAChart(t.concl, p);
+        const p = computePrazoPct(t.createdAt, t.dueDate);
+        this.renderSLAChart(t.concl, Math.min(p,100));
       },
 
       openTicketDetail(t, rowEl){
@@ -455,8 +746,9 @@
         if (els.tdTitle) els.tdTitle.textContent = t.id;
         if (els.tdPct) els.tdPct.textContent = `${t.concl}%`;
         if (els.tdMeta) {
-          const prazoPct = t.dueDate ? computePrazoPct(t.createdAt, t.dueDate) : (t.prazo ?? 0);
-          const maybeDue = t.dueDate ? `<span><b>Prazo final:</b> ${new Date(t.dueDate).toLocaleDateString('pt-BR')}</span>` : '';
+          const prazoPct = computePrazoPct(t.createdAt, t.dueDate);
+          const overdue = parseDateLocal(t.dueDate) < new Date();
+          const maybeDue = t.dueDate ? `<span><b>Prazo final:</b> ${parseDateLocal(t.dueDate).toLocaleDateString('pt-BR')}</span>` : '';
           els.tdMeta.innerHTML = `
             <span><b>Data:</b> ${fmtDate(t.createdAt)}</span>
             <span><b>Aberto por:</b> ${t.solicitante}</span>
@@ -464,7 +756,7 @@
             <span><b>Ponto de encontro:</b> ${t.meetPoint}</span>
             <span><b>Dupla:</b> ${t.dupla}</span>
             ${maybeDue}
-            <span><b>Prazo consumido:</b> ${prazoPct}%</span>`;
+            <span class="${overdue ? 'overdue' : ''}"><b>Prazo consumido:</b> ${prazoPct}%</span>`;
         }
 
         if (els.tdDesc) {
@@ -474,6 +766,40 @@
           `;
         }
 
+        if (els.tdNotes) {
+          const listEl = qs('#tdNotesList', els.tdNotes);
+          const notes = t.notes || [];
+          if (listEl) listEl.innerHTML = notes.map(n=>`<li><b>${n.user}:</b> ${n.text}</li>`).join('') || '<li>Nenhuma anotação.</li>';
+          const form = qs('#tdNoteForm', els.tdNotes);
+          const btn = qs('#tdAddNoteBtn', form);
+          if (btn && !btn._bound) {
+            btn.addEventListener('click', ()=>{
+              const ta = qs('textarea', form);
+              const text = ta.value.trim();
+              if (!text) return;
+              UI.addTicketNote(t, text);
+              ta.value = '';
+            });
+            btn._bound = true;
+          }
+        }
+
+        if (els.tdObs) {
+          const obs = t.obs || {};
+          if (CURRENT_ROLE === 'admin') {
+            els.tdObs.innerHTML = `<form id="tdObsForm"><textarea style="width:100%; min-height:120px; background:#0f131a; border:1px solid var(--card-border); border-radius:10px; color:var(--text); padding:10px" placeholder="Observações gerais..." autocomplete="off">${obs.text||''}</textarea><div class="actions" style="margin-top:6px"><button type="submit" class="btn btn-primary">Salvar</button></div></form>`;
+            const form = qs('#tdObsForm', els.tdObs);
+            form.addEventListener('submit', ev=>{
+              ev.preventDefault();
+              const text = qs('textarea', form).value.trim();
+              UI.saveTicketObs(t, text);
+            });
+          } else {
+            const content = obs.text ? `<p>${obs.text}${obs.user ? `<br><small>por ${obs.user}</small>` : ''}</p>` : '<p>Nenhuma observação.</p>';
+            els.tdObs.innerHTML = content;
+          }
+        }
+
         const list = DB.state.rdosByTicket[t.id] || [];
         if (els.tdRDOList) els.tdRDOList.innerHTML = list.map(i=>`<li>${i}</li>`).join('') || '<li>Nenhum RDO registrado.</li>';
         if (els.tdEditForm){
@@ -481,6 +807,7 @@
           const form = document.createElement('form');
           form.id = 'editTicketForm';
           form.className = 'edit-form';
+          form.autocomplete = 'off';
 
           // Mesmo truque: garantir dueDate presente para edição
           const fieldsToRender = Array.isArray(window.TICKET_FIELDS) ? [...TICKET_FIELDS] : [];
@@ -514,17 +841,17 @@
             } else if (f === 'dueDate') {
               inp = document.createElement('input');
               inp.type = 'date';
-              if (t[f]) inp.value = new Date(t[f]).toISOString().slice(0,10);
-            } else if (f === 'prazo') {
-              inp = document.createElement('input');
-              inp.type = 'number'; inp.min = '0'; inp.max = '100'; inp.step = '1';
-              inp.value = t[f] ?? 0;
+              if (t[f]) {
+                const d = parseDateLocal(t[f]);
+                if (!isNaN(d)) inp.value = d.toISOString().slice(0,10);
+              }
             } else {
               inp = document.createElement('input');
               inp.type = 'text';
               inp.value = t[f] ?? '';
             }
             inp.name = f;
+            inp.autocomplete = 'off';
             wrap.appendChild(label);
             wrap.appendChild(inp);
             form.appendChild(wrap);
@@ -536,12 +863,18 @@
           btnSave.type = 'submit';
           btnSave.className = 'btn btn-primary';
           btnSave.textContent = 'Salvar';
+          const btnArchive = document.createElement('button');
+          btnArchive.type = 'button';
+          btnArchive.className = 'btn';
+          btnArchive.id = 'btnArchiveTicket';
+          btnArchive.textContent = 'Arquivar';
           const btnDel = document.createElement('button');
           btnDel.type = 'button';
           btnDel.className = 'del-btn btn';
           btnDel.id = 'btnDelTicket';
           btnDel.textContent = 'Excluir';
           actions.appendChild(btnSave);
+          actions.appendChild(btnArchive);
           actions.appendChild(btnDel);
           form.appendChild(actions);
           els.tdEditForm.appendChild(form);
@@ -553,9 +886,9 @@
             const allKeys = new Set([...(window.TICKET_FIELDS||[]), 'dueDate']);
             allKeys.forEach(f=>{ if (fd.has(f)) updated[f] = fd.get(f); });
             updated.concl = Number(updated.concl || 0);
-            if (typeof updated.prazo !== 'undefined') updated.prazo = Number(updated.prazo || 0); // compat legado
             UI.editTicket(t, updated);
           });
+          btnArchive.addEventListener('click', ()=> UI.archiveTicket(t));
           btnDel.addEventListener('click', ()=> UI.deleteTicket(t));
         }
 
@@ -594,77 +927,113 @@
         if (firstPanel){ firstPanel.classList.add('active'); firstPanel.style.display=''; }
       },
 
-      editTicket(t, updated){
+      async addTicketNote(t, text){
+        await DB.addTicketNote(t.id, text, CURRENT_USER);
+        UI.openTicketDetail(t);
+      },
+
+      async saveTicketObs(t, text){
+        if (CURRENT_ROLE !== 'admin') return;
+        await DB.setTicketObs(t.id, text, CURRENT_USER);
+        UI.openTicketDetail(t);
+      },
+
+      async editTicket(t, updated){
         if (updated.id !== t.id){
           if (DB.state.rdosByTicket[t.id]){ DB.state.rdosByTicket[updated.id] = DB.state.rdosByTicket[t.id]; delete DB.state.rdosByTicket[t.id]; }
-          if (DB.state.historyByTicket[t.id]){ DB.state.historyByTicket[updated.id] = DB.state.historyByTicket[t.id]; delete DB.state.historyByTicket[t.id]; }
         }
         Object.assign(t, updated);
-        DB.state.historyByTicket[t.id] = genHistory(t.concl);
+        DB.state.tickets.sort((a, b) => {
+          const da = parseDateLocal(a.dueDate);
+          const db = parseDateLocal(b.dueDate);
+          if (isNaN(da)) return 1;
+          if (isNaN(db)) return -1;
+          return da - db;
+        });
+        await DB.updateTicket(t.id, t);
         UI.renderTickets();
         UI.openTicketDetail(t);
       },
 
-      deleteTicket(t){
+      async deleteTicket(t){
         if(!confirm('Excluir chamado?')) return;
-        DB.state.tickets = DB.state.tickets.filter(x=>x!==t);
-        delete DB.state.rdosByTicket[t.id];
-        delete DB.state.historyByTicket[t.id];
+        await DB.finishTicket(t);
         UI.renderTickets();
+        UI.renderFinishedTickets();
         clearTicketDetail(els);
       },
+      async archiveTicket(t){
+        if(!confirm('Arquivar chamado?')) return;
+        await DB.archiveTicket(t);
+        UI.renderTickets();
+        UI.renderArchivedTickets();
+        clearTicketDetail(els);
+      },
+      async restoreTicket(t, from){
+        await DB.restoreTicket(t, from);
+        UI.renderTickets();
+        UI.renderArchivedTickets();
+        UI.renderFinishedTickets();
+      },
+      async deleteTicketPermanent(t, from){
+        if(!confirm('Excluir definitivamente?')) return;
+        await DB.deleteTicketPermanent(t, from);
+        UI.renderArchivedTickets();
+        UI.renderFinishedTickets();
+      },
 
-      editProject(p){
-        const fields = ['id','name','desc','prazo','dias','pessoas','diasTrab','pct'];
-        const updated = { ...p };
-        fields.forEach(f => {
-          const val = prompt(`Novo ${f}`, p[f] ?? '');
-          if (val !== null) updated[f] = val;
-        });
+      updateProject(p, updated){
         if (updated.id !== p.id){
           if (DB.state.materialsByProject[p.id]){ DB.state.materialsByProject[updated.id] = DB.state.materialsByProject[p.id]; delete DB.state.materialsByProject[p.id]; }
+          if (DB.state.rdosByProject[p.id]){ DB.state.rdosByProject[updated.id] = DB.state.rdosByProject[p.id]; delete DB.state.rdosByProject[p.id]; }
         }
         Object.assign(p, updated);
+        DB.state.projects.sort((a,b)=> parseDateLocal(a.prazo) - parseDateLocal(b.prazo));
+        DB.updateProject(p.id, p);
         UI.renderProjects();
         UI.updateProjectArrows();
         UI.openProjectDetailInline(p);
       },
 
-      deleteProject(p){
+      async addProjectNote(p, text){
+        await DB.addProjectNote(p.id, text, CURRENT_USER);
+        UI.openProjectDetailInline(p);
+      },
+
+      async saveProjectObs(p, text){
+        if (CURRENT_ROLE !== 'admin') return;
+        await DB.setProjectObs(p.id, text, CURRENT_USER);
+        UI.openProjectDetailInline(p);
+      },
+
+      async deleteProject(p){
         if(!confirm('Excluir projeto?')) return;
-        DB.state.projects = DB.state.projects.filter(x=>x!==p);
-        delete DB.state.materialsByProject[p.id];
+        await DB.finishProject(p);
         UI.renderProjects();
+        UI.renderFinishedProjects();
         UI.updateProjectArrows();
         if(els.projDetailsInline) els.projDetailsInline.innerHTML = '';
       },
-
-      // ===== Charts (andamento) =====
-      renderProgressChart(series, targetId='chartProgress'){
-        const svg = targetId ? qs('#'+targetId) : els.chartProgress;
-        if (!svg) return;
-        const pts = (series && series.length ? series : [5,12,18,32,46,60,75,90]);
-        const path = pts.map((v,i)=>{
-          const x = (i/(pts.length-1))*100; const y = 38 - (v*0.35);
-          return `${i? 'L':'M'} ${x.toFixed(2)} ${y.toFixed(2)}`;
-        }).join(' ');
-        const dots = pts.map((v,i)=>{
-          const x = (i/(pts.length-1))*100; const y = 38 - (v*0.35);
-          return `<circle cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="1.3" fill="url(#gradP)" />`;
-        }).join('');
-        svg.innerHTML = `
-          <defs>
-            <linearGradient id="gradP" x1="0" x2="0" y1="0" y2="1">
-              <stop offset="0%" stop-color="${cssVar('--brand')}"/>
-              <stop offset="100%" stop-color="${cssVar('--brand-strong')}"/>
-            </linearGradient>
-          </defs>
-          <path d="${path}" fill="none" stroke="url(#gradP)" stroke-width="1.2" />
-          ${dots}
-          <g fill="#9aa0a6" font-size="3.2">
-            <text x="0" y="39">0%</text>
-            <text x="92" y="39">100%</text>
-          </g>`;
+      async archiveProject(p){
+        if(!confirm('Arquivar projeto?')) return;
+        await DB.archiveProject(p);
+        UI.renderProjects();
+        UI.renderArchivedProjects();
+        UI.updateProjectArrows();
+        if(els.projDetailsInline) els.projDetailsInline.innerHTML = '';
+      },
+      async restoreProject(p, from){
+        await DB.restoreProject(p, from);
+        UI.renderProjects();
+        UI.renderArchivedProjects();
+        UI.renderFinishedProjects();
+        UI.updateProjectArrows();
+      },
+      async deleteProjectPermanent(p, from){
+        if(!confirm('Excluir definitivamente?')) return;
+        await DB.deleteProjectPermanent(p, from);
+        UI.renderArchivedProjects();
+        UI.renderFinishedProjects();
       },
 
       renderSLAChart(concl, prazo, targetId='chartSLA'){
@@ -706,30 +1075,132 @@
       },
       openProjectDetailInline(p){
         UI.setActiveTab('projects');
-        const mats = DB.state.materialsByProject[p.id] || [];
+        const rdos = DB.state.rdosByProject[p.id] || [];
         if (!els.projDetailsInline) return;
         els.projDetailsInline.innerHTML = `
-          <header style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px">
-            <strong>${p.name}</strong>
-            <div style="display:flex; gap:6px; align-items:center">
+          <div class="project-detail-inline">
+            <header style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px">
+              <strong>${p.name}</strong>
               <span class="badge">${p.pct}%</span>
-              <button class="edit-btn" id="projEdit">Editar</button>
-              <button class="del-btn" id="projDel">Excluir</button>
+            </header>
+            <div id="pdMeta" style="display:flex; gap:12px; flex-wrap:wrap; color:var(--muted); font-size:13px">
+              <span><b>Prazo:</b> ${new Date(p.prazo).toLocaleDateString('pt-BR')}</span>
+              <span><b>Dias:</b> ${p.dias}</span>
+              <span><b>Pessoas:</b> ${p.pessoas}</span>
+              <span><b>Dias trabalhados:</b> ${p.diasTrab}</span>
             </div>
-          </header>
-          <div style="display:flex; gap:12px; flex-wrap:wrap; color:var(--muted); font-size:13px">
-            <span><b>Prazo:</b> ${new Date(p.prazo).toLocaleDateString('pt-BR')}</span>
-            <span><b>Dias:</b> ${p.dias}</span>
-            <span><b>Pessoas:</b> ${p.pessoas}</span>
-            <span><b>Dias trabalhados:</b> ${p.diasTrab}</span>
-          </div>
-          <div class="pbar" style="margin-top:6px"><i style="width:${p.pct}%"></i></div>
-          <div style="margin-top:8px">
-            <h3 style="font-size:13px; color:var(--muted); margin-bottom:6px">Materiais</h3>
-            <ul style="margin-left:18px; display:grid; gap:4px">${mats.map(m=>`<li>${m}</li>`).join('')}</ul>
-          </div>`;
-        qs('#projEdit')?.addEventListener('click', ()=> UI.editProject(p));
-        qs('#projDel')?.addEventListener('click', ()=> UI.deleteProject(p));
+            <div class="pbar" style="margin-top:6px"><i style="width:${p.pct}%"></i></div>
+            <div class="subtabs" style="display:flex; gap:8px; border-bottom:1px solid var(--card-border); margin-top:10px">
+              <button class="subtab active" data-tab="pdDesc" style="background:transparent;border:1px solid var(--card-border);border-bottom:0;padding:8px 12px;border-top-left-radius:10px;border-top-right-radius:10px;cursor:pointer;color:var(--text)">Descrição</button>
+              <button class="subtab" data-tab="pdNotes" style="background:transparent;border:1px solid var(--card-border);border-bottom:0;padding:8px 12px;border-top-left-radius:10px;border-top-right-radius:10px;cursor:pointer;color:var(--text)">Anotações</button>
+              <button class="subtab" data-tab="pdRDO" style="background:transparent;border:1px solid var(--card-border);border-bottom:0;padding:8px 12px;border-top-left-radius:10px;border-top-right-radius:10px;cursor:pointer;color:var(--text)">RDO's</button>
+              <button class="subtab" data-tab="pdObs" style="background:transparent;border:1px solid var(--card-border);border-bottom:0;padding:8px 12px;border-top-left-radius:10px;border-top-right-radius:10px;cursor:pointer;color:var(--text)">Observações</button>
+              <button class="subtab" data-tab="pdEditForm" style="background:transparent;border:1px solid var(--card-border);border-bottom:0;padding:8px 12px;border-top-left-radius:10px;border-top-right-radius:10px;cursor:pointer;color:var(--text)">Editar</button>
+            </div>
+            <div class="subtab-panel active" id="pdDesc" style="padding-top:10px"><p>${p.desc}</p></div>
+            <div class="subtab-panel" id="pdNotes" style="display:none;padding-top:10px"><ul id="pdNotesList" style="display:grid; gap:6px; margin-left:18px"></ul><div id="pdNoteForm" style="margin-top:8px"><textarea style="width:100%; min-height:120px; background:#0f131a; border:1px solid var(--card-border); border-radius:10px; color:var(--text); padding:10px" placeholder="Anotações do projeto..." autocomplete="off"></textarea><div class="actions" style="margin-top:6px"><button type="button" class="btn btn-primary" id="pdAddNoteBtn">Adicionar</button></div></div></div>
+            <div class="subtab-panel" id="pdRDO" style="display:none;padding-top:10px"><ul id="pdRDOList" style="display:grid; gap:6px; margin-left:18px">${rdos.map(r=>`<li>${r}</li>`).join('') || '<li>Nenhum RDO registrado.</li>'}</ul></div>
+          <div class="subtab-panel" id="pdObs" style="display:none;padding-top:10px"></div>
+          <div class="subtab-panel" id="pdEditForm" style="display:none;padding-top:10px"></div>
+        </div>`;
+
+        const notesPanel = qs('#pdNotes', els.projDetailsInline);
+        const nList = qs('#pdNotesList', notesPanel);
+        const notes = p.notes || [];
+        if (nList) nList.innerHTML = notes.map(n=>`<li><b>${n.user}:</b> ${n.text}</li>`).join('') || '<li>Nenhuma anotação.</li>';
+        const nForm = qs('#pdNoteForm', notesPanel);
+        const nBtn = qs('#pdAddNoteBtn', nForm);
+        if (nBtn && !nBtn._bound){
+          nBtn.addEventListener('click', ()=>{
+            const ta = qs('textarea', nForm);
+            const text = ta.value.trim();
+            if (!text) return;
+            UI.addProjectNote(p, text);
+            ta.value = '';
+          });
+          nBtn._bound = true;
+        }
+
+        const obsPanel = qs('#pdObs', els.projDetailsInline);
+        const obs = p.obs || {};
+        if (CURRENT_ROLE === 'admin') {
+          obsPanel.innerHTML = `<form id="pdObsForm"><textarea style="width:100%; min-height:120px; background:#0f131a; border:1px solid var(--card-border); border-radius:10px; color:var(--text); padding:10px" placeholder="Observações gerais..." autocomplete="off">${obs.text||''}</textarea><div class="actions" style="margin-top:6px"><button type="submit" class="btn btn-primary">Salvar</button></div></form>`;
+          const oform = qs('#pdObsForm', obsPanel);
+          oform.addEventListener('submit', ev=>{
+            ev.preventDefault();
+            const text = qs('textarea', oform).value.trim();
+            UI.saveProjectObs(p, text);
+          });
+        } else {
+          const content = obs.text ? `<p>${obs.text}${obs.user ? `<br><small>por ${obs.user}</small>` : ''}</p>` : '<p>Nenhuma observação.</p>';
+          obsPanel.innerHTML = content;
+        }
+
+        // Construção do form de edição
+        const form = document.createElement('form');
+        form.id = 'editProjectForm';
+        form.className = 'edit-form';
+        form.autocomplete = 'off';
+        const fields = ['id','name','desc','prazo','dias','pessoas','diasTrab','pct'];
+        fields.forEach(f=>{
+          const wrap = document.createElement('div');
+          wrap.className = 'field' + (f === 'desc' ? ' full' : '');
+          const label = document.createElement('label');
+          label.textContent = f;
+          const inp = document.createElement('input');
+          inp.name = f;
+          inp.autocomplete = 'off';
+          if (f === 'desc') { inp.type = 'text'; }
+          else if (f === 'prazo') { inp.type = 'date'; }
+          else if (['dias','pessoas','diasTrab','pct'].includes(f)) { inp.type = 'number'; }
+          else { inp.type = 'text'; }
+          inp.value = p[f] ?? '';
+          wrap.appendChild(label);
+          wrap.appendChild(inp);
+          form.appendChild(wrap);
+        });
+        const actions = document.createElement('div');
+        actions.className = 'actions';
+        const btnSave = document.createElement('button');
+        btnSave.type = 'submit';
+        btnSave.className = 'btn btn-primary';
+        btnSave.textContent = 'Salvar';
+        const btnArchive = document.createElement('button');
+        btnArchive.type = 'button';
+        btnArchive.className = 'btn';
+        btnArchive.textContent = 'Arquivar';
+        const btnDel = document.createElement('button');
+        btnDel.type = 'button';
+        btnDel.className = 'btn';
+        btnDel.textContent = 'Excluir';
+        actions.appendChild(btnSave);
+        actions.appendChild(btnArchive);
+        actions.appendChild(btnDel);
+        form.appendChild(actions);
+        const editWrap = qs('#pdEditForm', els.projDetailsInline);
+        editWrap?.appendChild(form);
+
+        form.addEventListener('submit', ev=>{
+          ev.preventDefault();
+          const fd = new FormData(form);
+          const updated = {};
+          fields.forEach(f=>{ if(fd.has(f)) updated[f] = fd.get(f); });
+          UI.updateProject(p, updated);
+        });
+        btnArchive.addEventListener('click', ()=> UI.archiveProject(p));
+        btnDel.addEventListener('click', ()=> UI.deleteProject(p));
+        const detail = els.projDetailsInline.querySelector('.project-detail-inline');
+        els.projDetailsInline.scrollIntoView({behavior:'smooth', block:'start'});
+        detail?.addEventListener('click', ev=>{
+          const btn = ev.target.closest('.subtab');
+          if(!btn) return;
+          const tab = btn.dataset.tab;
+          qsa('.subtab', detail).forEach(b=>b.classList.remove('active'));
+          qsa('.subtab-panel', detail).forEach(pn=>{ pn.classList.remove('active'); pn.style.display='none'; });
+          btn.classList.add('active');
+          const panel = detail.querySelector('#'+tab);
+          if(panel){ panel.classList.add('active'); panel.style.display=''; }
+        });
       },
     };
   // ===== Helpers do Modo TV (fora do UI!) =====
@@ -805,6 +1276,31 @@
     els.tabAdmin?.addEventListener('click', ()=> els.adminMenu?.classList.toggle('open'));
     els.btnAdminCreateTicket?.addEventListener('click', ()=>{
       UI.showCreateTicket();
+      els.adminMenu?.classList.remove('open');
+      els.sidebar?.classList.remove('open');
+    });
+    els.btnAdminCreateProject?.addEventListener('click', ()=>{
+      UI.showCreateProject();
+      els.adminMenu?.classList.remove('open');
+      els.sidebar?.classList.remove('open');
+    });
+    els.btnAdminArchivedTickets?.addEventListener('click', ()=>{
+      UI.showArchivedTickets();
+      els.adminMenu?.classList.remove('open');
+      els.sidebar?.classList.remove('open');
+    });
+    els.btnAdminFinishedTickets?.addEventListener('click', ()=>{
+      UI.showFinishedTickets();
+      els.adminMenu?.classList.remove('open');
+      els.sidebar?.classList.remove('open');
+    });
+    els.btnAdminArchivedProjects?.addEventListener('click', ()=>{
+      UI.showArchivedProjects();
+      els.adminMenu?.classList.remove('open');
+      els.sidebar?.classList.remove('open');
+    });
+    els.btnAdminFinishedProjects?.addEventListener('click', ()=>{
+      UI.showFinishedProjects();
       els.adminMenu?.classList.remove('open');
       els.sidebar?.classList.remove('open');
     });

@@ -45,11 +45,9 @@ const tpl = {
               <button class="navbtn" id="btnAdminCreateTicket">Criar chamado</button>
               <button class="navbtn" id="btnAdminArchivedTickets">Chamados arquivados</button>
               <button class="navbtn" id="btnAdminFinishedTickets">Chamados finalizados</button>
-              <button class="navbtn" id="btnAdminHistory">Histórico</button>
               <button class="navbtn" id="btnAdminCreateProject">Criar projeto</button>
               <button class="navbtn" id="btnAdminArchivedProjects">Projetos arquivados</button>
               <button class="navbtn" id="btnAdminFinishedProjects">Projetos finalizados</button>
-              <button class="navbtn" id="btnAdminChanges">Alterações</button>
             </div>
             <!-- menu admin-only -->
             <button class="navbtn" id="tabConfig">Configurações</button>
@@ -108,14 +106,16 @@ const tpl = {
               </div>
               <div class="subtab-panel active" id="tdDesc" style="padding-top:10px"></div>
               <div class="subtab-panel" id="tdNotes" style="display:none;padding-top:10px">
-                <textarea style="width:100%; min-height:120px; background:#0f131a; border:1px solid var(--card-border); border-radius:10px; color:var(--text); padding:10px" placeholder="Escreva anotações do chamado..."></textarea>
+                <ul id="tdNotesList" style="display:grid; gap:6px; margin-left:18px"></ul>
+                <div id="tdNoteForm" style="margin-top:8px">
+                  <textarea style="width:100%; min-height:120px; background:#0f131a; border:1px solid var(--card-border); border-radius:10px; color:var(--text); padding:10px" placeholder="Escreva anotações do chamado..." autocomplete="off"></textarea>
+                  <div class="actions" style="margin-top:6px"><button type="button" class="btn btn-primary" id="tdAddNoteBtn">Adicionar</button></div>
+                </div>
               </div>
               <div class="subtab-panel" id="tdRDO" style="display:none;padding-top:10px">
                 <ul id="tdRDOList" style="display:grid; gap:6px; margin-left:18px"></ul>
               </div>
-              <div class="subtab-panel" id="tdObs" style="display:none;padding-top:10px">
-                <textarea style="width:100%; min-height:120px; background:#0f131a; border:1px solid var(--card-border); border-radius:10px; color:var(--text); padding:10px" placeholder="Observações gerais..."></textarea>
-              </div>
+              <div class="subtab-panel" id="tdObs" style="display:none;padding-top:10px"></div>
               <div class="subtab-panel" id="tdEditForm" style="display:none;padding-top:10px"></div>
             </div>
           </section>
@@ -125,7 +125,6 @@ const tpl = {
             <h2>Andamento do chamado selecionado</h2>
             <div class="chart">
               <h3>Progresso ao longo do tempo (%)</h3>
-              <div class="svg-wrap"><svg id="chartProgress" viewBox="0 0 100 40" preserveAspectRatio="none"></svg></div>
             </div>
             <div class="chart">
               <h3>Prazo consumido vs Conclusão (%)</h3>
@@ -149,6 +148,85 @@ const tpl = {
           <section class="section" id="sectionCreateTicket" style="display:none">
             <h2>Novo chamado</h2>
             <form class="edit-form" id="createTicketForm"></form>
+          </section>
+          <!-- ADMIN: criar projeto -->
+          <section class="section" id="sectionCreateProject" style="display:none">
+            <h2>Novo projeto</h2>
+            <form class="edit-form" id="createProjectForm"></form>
+          </section>
+          <!-- ADMIN: chamados arquivados -->
+          <section class="section" id="sectionArchivedTickets" style="display:none">
+            <h2>Chamados arquivados</h2>
+            <div class="table-wrap">
+              <table class="table" id="archivedTicketsTable">
+                <thead>
+                  <tr>
+                    <th>ID do chamado</th>
+                    <th>Data de criação</th>
+                    <th>Ponto de encontro</th>
+                    <th>Dupla</th>
+                    <th>% de conclusão</th>
+                    <th>% de prazo</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </section>
+          <!-- ADMIN: chamados finalizados -->
+          <section class="section" id="sectionFinishedTickets" style="display:none">
+            <h2>Chamados finalizados</h2>
+            <div class="table-wrap">
+              <table class="table" id="finishedTicketsTable">
+                <thead>
+                  <tr>
+                    <th>ID do chamado</th>
+                    <th>Data de criação</th>
+                    <th>Ponto de encontro</th>
+                    <th>Dupla</th>
+                    <th>% de conclusão</th>
+                    <th>% de prazo</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </section>
+          <!-- ADMIN: projetos arquivados -->
+          <section class="section" id="sectionArchivedProjects" style="display:none">
+            <h2>Projetos arquivados</h2>
+            <div class="table-wrap">
+              <table class="table" id="archivedProjectsTable">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Nome</th>
+                    <th>Prazo</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </section>
+          <!-- ADMIN: projetos finalizados -->
+          <section class="section" id="sectionFinishedProjects" style="display:none">
+            <h2>Projetos finalizados</h2>
+            <div class="table-wrap">
+              <table class="table" id="finishedProjectsTable">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Nome</th>
+                    <th>Prazo</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
           </section>
         </main>
       </div>`

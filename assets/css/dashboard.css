@@ -46,6 +46,11 @@
 .nums b{ color:#fff }
 .progress{ height:8px; background:#0f131a; border:1px solid var(--card-border); border-radius:8px; overflow:hidden }
 .progress > i{ display:block; height:100%; background: linear-gradient(180deg, var(--brand), var(--brand-strong)); width:0% }
+.prog.overdue .nums{ color:#f87171 }
+.prog.overdue .nums b{ color:#f87171 }
+.prog.overdue .progress{ border-color:#f87171 }
+.prog.overdue .progress > i{ background: linear-gradient(180deg, #f87171, #ef4444) }
+.overdue{ color:#f87171 }
 
 /* Gráficos (overview) */
 .charts{ grid-column: span 5; }
@@ -96,8 +101,9 @@
   text-decoration: underline; cursor: pointer; padding: 0; font: inherit;
 }
 
-/* Detalhe do chamado (base) */
-.ticket-detail{
+/* Detalhes inline de chamado e projeto */
+.ticket-detail,
+.project-detail-inline{
   background:#0f131a; border:1px solid var(--card-border);
   border-radius:12px; padding:12px; margin-top:8px;
 }
@@ -138,7 +144,7 @@
 
 /* garante que cada coisa fique na linha certa */
 .tickets-page #sectionTickets > h2{ grid-area: title; margin:0; padding:0; line-height:1.1; }
-.tickets-page #sectionTickets .table-wrap{ grid-area: list; min-height:0; overflow:auto; }
+.tickets-page #sectionTickets .table-wrap{ grid-area: list; min-height:0; overflow:auto; height:100%; max-height:none; }
 .tickets-page #sectionTickets .ticket-detail{ grid-area: detail; min-height:0; overflow:auto; }
 
 /* largura total na aba Chamados */
@@ -390,7 +396,8 @@ body.tv-mode .section{
 #sectionCreateTicket{ grid-column: 1 / -1; }
 
 /* Grid do form (desktop) */
-#sectionCreateTicket .edit-form{
+#sectionCreateTicket .edit-form,
+#sectionCreateProject .edit-form{
   max-width: none;
   width: 100%;
   display: grid;
@@ -400,26 +407,31 @@ body.tv-mode .section{
 
 /* Inputs sempre com largura visível */
 #sectionCreateTicket .edit-form input,
-#sectionCreateTicket .edit-form textarea{
+#sectionCreateTicket .edit-form textarea,
+#sectionCreateProject .edit-form input,
+#sectionCreateProject .edit-form textarea{
   width: 100%;
   display: block;
   border-color: rgba(255,255,255,.18); /* um pouco mais visível */
 }
 
 /* Botões no fim ocupando a linha inteira */
-#sectionCreateTicket .edit-form .actions{
+#sectionCreateTicket .edit-form .actions,
+#sectionCreateProject .edit-form .actions{
   grid-column: 1 / -1;
   display: flex;
   gap: 8px;
 }
 
 @media (max-width: 900px){
-  #sectionCreateTicket .edit-form{
+  #sectionCreateTicket .edit-form,
+  #sectionCreateProject .edit-form{
     grid-template-columns: 1fr;
   }
 }
 /* === Criar/Editar: layout premium === */
-#sectionCreateTicket{ grid-column: 1 / -1; }
+#sectionCreateTicket,
+#sectionCreateProject{ grid-column: 1 / -1; }
 
 .edit-form{
   width: 100%;
@@ -481,28 +493,37 @@ body.tv-mode .section{
 @media (max-width: 900px){
   .edit-form .field{ grid-column: 1 / -1; }
 }
-/* === Scrollbar custom no content e no Criar Chamado === */
+/* === Scrollbar custom no content e em telas de administração === */
 .content.panel,
 #sectionCreateTicket,
-#sectionCreateTicket .edit-form {
+#sectionCreateTicket .edit-form,
+#sectionCreateProject,
+#sectionCreateProject .edit-form {
   scrollbar-width: thin;
   scrollbar-color: rgba(122,162,255,.5) rgba(255,255,255,.06);
 }
 .content.panel::-webkit-scrollbar,
 #sectionCreateTicket::-webkit-scrollbar,
-#sectionCreateTicket .edit-form::-webkit-scrollbar{
+#sectionCreateTicket .edit-form::-webkit-scrollbar,
+#sectionCreateProject::-webkit-scrollbar,
+#sectionCreateProject .edit-form::-webkit-scrollbar{
   width: 10px;
 }
 .content.panel::-webkit-scrollbar-track,
 #sectionCreateTicket::-webkit-scrollbar-track,
-#sectionCreateTicket .edit-form::-webkit-scrollbar-track{
+#sectionCreateTicket .edit-form::-webkit-scrollbar-track,
+#sectionCreateProject::-webkit-scrollbar-track,
+#sectionCreateProject .edit-form::-webkit-scrollbar-track{
   background: rgba(255,255,255,.06);
   border-radius: 10px;
 }
 .content.panel::-webkit-scrollbar-thumb,
 #sectionCreateTicket::-webkit-scrollbar-thumb,
-#sectionCreateTicket .edit-form::-webkit-scrollbar-thumb{
+#sectionCreateTicket .edit-form::-webkit-scrollbar-thumb,
+#sectionCreateProject::-webkit-scrollbar-thumb,
+#sectionCreateProject .edit-form::-webkit-scrollbar-thumb{
   background: linear-gradient(180deg, var(--brand), var(--brand-strong));
   border-radius: 10px;
   border: 2px solid rgba(255,255,255,.06);
 }
+
