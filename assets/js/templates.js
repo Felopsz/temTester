@@ -108,14 +108,16 @@ const tpl = {
               </div>
               <div class="subtab-panel active" id="tdDesc" style="padding-top:10px"></div>
               <div class="subtab-panel" id="tdNotes" style="display:none;padding-top:10px">
-                <textarea style="width:100%; min-height:120px; background:#0f131a; border:1px solid var(--card-border); border-radius:10px; color:var(--text); padding:10px" placeholder="Escreva anotações do chamado..."></textarea>
+                <ul id="tdNotesList" style="display:grid; gap:6px; margin-left:18px"></ul>
+                <form id="tdNoteForm" style="margin-top:8px">
+                  <textarea style="width:100%; min-height:120px; background:#0f131a; border:1px solid var(--card-border); border-radius:10px; color:var(--text); padding:10px" placeholder="Escreva anotações do chamado..." autocomplete="off"></textarea>
+                  <div class="actions" style="margin-top:6px"><button type="submit" class="btn btn-primary">Adicionar</button></div>
+                </form>
               </div>
               <div class="subtab-panel" id="tdRDO" style="display:none;padding-top:10px">
                 <ul id="tdRDOList" style="display:grid; gap:6px; margin-left:18px"></ul>
               </div>
-              <div class="subtab-panel" id="tdObs" style="display:none;padding-top:10px">
-                <textarea style="width:100%; min-height:120px; background:#0f131a; border:1px solid var(--card-border); border-radius:10px; color:var(--text); padding:10px" placeholder="Observações gerais..."></textarea>
-              </div>
+              <div class="subtab-panel" id="tdObs" style="display:none;padding-top:10px"></div>
               <div class="subtab-panel" id="tdEditForm" style="display:none;padding-top:10px"></div>
             </div>
           </section>

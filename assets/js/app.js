@@ -801,6 +801,40 @@
           `;
         }
 
+        if (els.tdNotes) {
+          const listEl = qs('#tdNotesList', els.tdNotes);
+          const notes = DB.state.notesByTicket[t.id] || [];
+          if (listEl) listEl.innerHTML = notes.map(n=>`<li><b>${n.user}:</b> ${n.text}</li>`).join('') || '<li>Nenhuma anotação.</li>';
+          const form = qs('#tdNoteForm', els.tdNotes);
+          if (form && !form._bound) {
+            form.addEventListener('submit', ev=>{
+              ev.preventDefault();
+              const ta = qs('textarea', form);
+              const text = ta.value.trim();
+              if (!text) return;
+              UI.addTicketNote(t, text);
+              ta.value = '';
+            });
+            form._bound = true;
+          }
+        }
+
+        if (els.tdObs) {
+          const obs = DB.state.obsByTicket[t.id] || {};
+          if (CURRENT_ROLE === 'admin') {
+            els.tdObs.innerHTML = `<form id="tdObsForm"><textarea style="width:100%; min-height:120px; background:#0f131a; border:1px solid var(--card-border); border-radius:10px; color:var(--text); padding:10px" placeholder="Observações gerais..." autocomplete="off">${obs.text||''}</textarea><div class="actions" style="margin-top:6px"><button type="submit" class="btn btn-primary">Salvar</button></div></form>`;
+            const form = qs('#tdObsForm', els.tdObs);
+            form.addEventListener('submit', ev=>{
+              ev.preventDefault();
+              const text = qs('textarea', form).value.trim();
+              UI.saveTicketObs(t, text);
+            });
+          } else {
+            const content = obs.text ? `<p>${obs.text}${obs.user ? `<br><small>por ${obs.user}</small>` : ''}</p>` : '<p>Nenhuma observação.</p>';
+            els.tdObs.innerHTML = content;
+          }
+        }
+
         const list = DB.state.rdosByTicket[t.id] || [];
         if (els.tdRDOList) els.tdRDOList.innerHTML = list.map(i=>`<li>${i}</li>`).join('') || '<li>Nenhum RDO registrado.</li>';
         if (els.tdEditForm){
@@ -928,6 +962,17 @@
         if (firstPanel){ firstPanel.classList.add('active'); firstPanel.style.display=''; }
       },
 
+      async addTicketNote(t, text){
+        await DB.addTicketNote(t.id, text, CURRENT_USER);
+        UI.openTicketDetail(t);
+      },
+
+      async saveTicketObs(t, text){
+        if (CURRENT_ROLE !== 'admin') return;
+        await DB.setTicketObs(t.id, text, CURRENT_USER);
+        UI.openTicketDetail(t);
+      },
+
       async editTicket(t, updated){
         if (updated.id !== t.id){
           if (DB.state.rdosByTicket[t.id]){ DB.state.rdosByTicket[updated.id] = DB.state.rdosByTicket[t.id]; delete DB.state.rdosByTicket[t.id]; }
@@ -984,6 +1029,17 @@
         DB.updateProject(p.id, p);
         UI.renderProjects();
         UI.updateProjectArrows();
+        UI.openProjectDetailInline(p);
+      },
+
+      async addProjectNote(p, text){
+        await DB.addProjectNote(p.id, text, CURRENT_USER);
+        UI.openProjectDetailInline(p);
+      },
+
+      async saveProjectObs(p, text){
+        if (CURRENT_ROLE !== 'admin') return;
+        await DB.setProjectObs(p.id, text, CURRENT_USER);
         UI.openProjectDetailInline(p);
       },
 
@@ -1107,11 +1163,43 @@
               <button class="subtab" data-tab="pdEditForm" style="background:transparent;border:1px solid var(--card-border);border-bottom:0;padding:8px 12px;border-top-left-radius:10px;border-top-right-radius:10px;cursor:pointer;color:var(--text)">Editar</button>
             </div>
             <div class="subtab-panel active" id="pdDesc" style="padding-top:10px"><p>${p.desc}</p></div>
-            <div class="subtab-panel" id="pdNotes" style="display:none;padding-top:10px"><textarea style="width:100%; min-height:120px; background:#0f131a; border:1px solid var(--card-border); border-radius:10px; color:var(--text); padding:10px" placeholder="Anotações do projeto..."></textarea></div>
+            <div class="subtab-panel" id="pdNotes" style="display:none;padding-top:10px"><ul id="pdNotesList" style="display:grid; gap:6px; margin-left:18px"></ul><form id="pdNoteForm" style="margin-top:8px"><textarea style="width:100%; min-height:120px; background:#0f131a; border:1px solid var(--card-border); border-radius:10px; color:var(--text); padding:10px" placeholder="Anotações do projeto..." autocomplete="off"></textarea><div class="actions" style="margin-top:6px"><button type="submit" class="btn btn-primary">Adicionar</button></div></form></div>
             <div class="subtab-panel" id="pdRDO" style="display:none;padding-top:10px"><ul id="pdRDOList" style="display:grid; gap:6px; margin-left:18px">${rdos.map(r=>`<li>${r}</li>`).join('') || '<li>Nenhum RDO registrado.</li>'}</ul></div>
-            <div class="subtab-panel" id="pdObs" style="display:none;padding-top:10px"><textarea style="width:100%; min-height:120px; background:#0f131a; border:1px solid var(--card-border); border-radius:10px; color:var(--text); padding:10px" placeholder="Observações gerais..."></textarea></div>
-            <div class="subtab-panel" id="pdEditForm" style="display:none;padding-top:10px"></div>
-          </div>`;
+          <div class="subtab-panel" id="pdObs" style="display:none;padding-top:10px"></div>
+          <div class="subtab-panel" id="pdEditForm" style="display:none;padding-top:10px"></div>
+        </div>`;
+
+        const notesPanel = qs('#pdNotes', els.projDetailsInline);
+        const nList = qs('#pdNotesList', notesPanel);
+        const notes = DB.state.notesByProject[p.id] || [];
+        if (nList) nList.innerHTML = notes.map(n=>`<li><b>${n.user}:</b> ${n.text}</li>`).join('') || '<li>Nenhuma anotação.</li>';
+        const nForm = qs('#pdNoteForm', notesPanel);
+        if (nForm && !nForm._bound){
+          nForm.addEventListener('submit', ev=>{
+            ev.preventDefault();
+            const ta = qs('textarea', nForm);
+            const text = ta.value.trim();
+            if (!text) return;
+            UI.addProjectNote(p, text);
+            ta.value = '';
+          });
+          nForm._bound = true;
+        }
+
+        const obsPanel = qs('#pdObs', els.projDetailsInline);
+        const obs = DB.state.obsByProject[p.id] || {};
+        if (CURRENT_ROLE === 'admin') {
+          obsPanel.innerHTML = `<form id="pdObsForm"><textarea style="width:100%; min-height:120px; background:#0f131a; border:1px solid var(--card-border); border-radius:10px; color:var(--text); padding:10px" placeholder="Observações gerais..." autocomplete="off">${obs.text||''}</textarea><div class="actions" style="margin-top:6px"><button type="submit" class="btn btn-primary">Salvar</button></div></form>`;
+          const oform = qs('#pdObsForm', obsPanel);
+          oform.addEventListener('submit', ev=>{
+            ev.preventDefault();
+            const text = qs('textarea', oform).value.trim();
+            UI.saveProjectObs(p, text);
+          });
+        } else {
+          const content = obs.text ? `<p>${obs.text}${obs.user ? `<br><small>por ${obs.user}</small>` : ''}</p>` : '<p>Nenhuma observação.</p>';
+          obsPanel.innerHTML = content;
+        }
 
         // Construção do form de edição
         const form = document.createElement('form');

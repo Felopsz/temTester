@@ -42,6 +42,10 @@ const DB = {
     materialsByProject: {},
     rdosByProject: {},
     rdosByTicket: {},
+    notesByProject: {},
+    obsByProject: {},
+    notesByTicket: {},
+    obsByTicket: {},
     historyByTicket: {},
     users: {},
   },
@@ -99,6 +103,10 @@ const DB = {
     this.state.materialsByProject = data.materialsByProject || {};
     this.state.rdosByProject = data.rdosByProject || {};
     this.state.rdosByTicket = data.rdosByTicket || {};
+    this.state.notesByProject = data.notesByProject || {};
+    this.state.obsByProject = data.obsByProject || {};
+    this.state.notesByTicket = data.notesByTicket || {};
+    this.state.obsByTicket = data.obsByTicket || {};
     this.state.users = data.users || {};
     this.state.historyByTicket = {};
     this.state.tickets.forEach(t=>{
@@ -137,6 +145,8 @@ const DB = {
       return da - db;
     });
     this.state.historyByTicket[id] = genHistory(data.concl || 0);
+    this.state.notesByTicket[id] = this.state.notesByTicket[id] || [];
+    this.state.obsByTicket[id] = this.state.obsByTicket[id] || {};
     try{
       await fetch('/api/db', {
         method:'PATCH',
@@ -162,6 +172,8 @@ const DB = {
     this.state.projects.sort((a, b) => parseDateLocal(a.prazo) - parseDateLocal(b.prazo));
     this.state.materialsByProject[id] = this.state.materialsByProject[id] || [];
     this.state.rdosByProject[id] = this.state.rdosByProject[id] || [];
+    this.state.notesByProject[id] = this.state.notesByProject[id] || [];
+    this.state.obsByProject[id] = this.state.obsByProject[id] || {};
     try{
       await fetch('/api/db', {
         method:'PATCH',
@@ -202,6 +214,60 @@ const DB = {
       await this.log('updateProject', {id});
     }catch(e){
       console.warn('Não foi possível persistir projeto', e);
+    }
+  },
+  async addTicketNote(id, text, user){
+    const arr = this.state.notesByTicket[id] || (this.state.notesByTicket[id] = []);
+    arr.push({text, user});
+    try{
+      await fetch('/api/db', {
+        method:'PATCH',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({notesByTicket:{[id]: arr}})
+      });
+      await this.log('addTicketNote', {id});
+    }catch(e){
+      console.warn('Não foi possível salvar anotação', e);
+    }
+  },
+  async setTicketObs(id, text, user){
+    this.state.obsByTicket[id] = {text, user};
+    try{
+      await fetch('/api/db', {
+        method:'PATCH',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({obsByTicket:{[id]: this.state.obsByTicket[id]}})
+      });
+      await this.log('setTicketObs', {id});
+    }catch(e){
+      console.warn('Não foi possível salvar observação', e);
+    }
+  },
+  async addProjectNote(id, text, user){
+    const arr = this.state.notesByProject[id] || (this.state.notesByProject[id] = []);
+    arr.push({text, user});
+    try{
+      await fetch('/api/db', {
+        method:'PATCH',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({notesByProject:{[id]: arr}})
+      });
+      await this.log('addProjectNote', {id});
+    }catch(e){
+      console.warn('Não foi possível salvar anotação', e);
+    }
+  },
+  async setProjectObs(id, text, user){
+    this.state.obsByProject[id] = {text, user};
+    try{
+      await fetch('/api/db', {
+        method:'PATCH',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({obsByProject:{[id]: this.state.obsByProject[id]}})
+      });
+      await this.log('setProjectObs', {id});
+    }catch(e){
+      console.warn('Não foi possível salvar observação', e);
     }
   },
   async archiveTicket(t){
@@ -256,11 +322,13 @@ const DB = {
     const idx=list.indexOf(t); if(idx>-1) list.splice(idx,1);
     delete this.state.rdosByTicket[t.id];
     delete this.state.historyByTicket[t.id];
+    delete this.state.notesByTicket[t.id];
+    delete this.state.obsByTicket[t.id];
     try{
       await fetch('/api/db', {
         method:'PATCH',
         headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({[key]:{[t.id]: null}, rdosByTicket:{[t.id]: null}})
+        body: JSON.stringify({[key]:{[t.id]: null}, rdosByTicket:{[t.id]: null}, notesByTicket:{[t.id]: null}, obsByTicket:{[t.id]: null}})
       });
       await this.log('deleteTicketPermanent', {id:t.id, from});
     }catch(e){ console.warn('Não foi possível excluir ticket', e); }
@@ -314,11 +382,13 @@ const DB = {
     const idx=list.indexOf(p); if(idx>-1) list.splice(idx,1);
     delete this.state.materialsByProject[p.id];
     if (this.state.rdosByProject[p.id]) delete this.state.rdosByProject[p.id];
+    delete this.state.notesByProject[p.id];
+    delete this.state.obsByProject[p.id];
     try{
       await fetch('/api/db', {
         method:'PATCH',
         headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({[key]:{[p.id]: null}, materialsByProject:{[p.id]: null}, rdosByProject:{[p.id]: null}})
+        body: JSON.stringify({[key]:{[p.id]: null}, materialsByProject:{[p.id]: null}, rdosByProject:{[p.id]: null}, notesByProject:{[p.id]: null}, obsByProject:{[p.id]: null}})
       });
       await this.log('deleteProjectPermanent', {id:p.id, from});
     }catch(e){ console.warn('Não foi possível excluir projeto', e); }

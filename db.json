@@ -190,6 +190,10 @@
   "rdosByTicket": {
     "CH-1021": ["RDO 08/06 - inspeção inicial", "RDO 08/07 - ajuste de parâmetros"],
     "CH-1023": ["RDO 08/07 - troca de ONU", "RDO 08/08 - testes finais"]
-  }
+  },
+  "notesByTicket": {},
+  "obsByTicket": {},
+  "notesByProject": {},
+  "obsByProject": {}
 }
 
