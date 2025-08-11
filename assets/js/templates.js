@@ -150,6 +150,11 @@ const tpl = {
             <h2>Novo chamado</h2>
             <form class="edit-form" id="createTicketForm"></form>
           </section>
+          <!-- ADMIN: criar projeto -->
+          <section class="section" id="sectionCreateProject" style="display:none">
+            <h2>Novo projeto</h2>
+            <form class="edit-form" id="createProjectForm"></form>
+          </section>
           <!-- ADMIN: alterações -->
           <section class="section" id="sectionAdminChanges" style="display:none">
             <h2>Alterações</h2>

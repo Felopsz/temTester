@@ -74,6 +74,13 @@ const DB = {
     const next = nums.length ? Math.max(...nums) + 1 : 1;
     return `CH-${String(next).padStart(4, '0')}`;
   },
+  genProjectId(){
+    const nums = this.state.projects
+      .map(p => parseInt(String(p.id).replace(/\D/g, ''), 10))
+      .filter(n => !isNaN(n));
+    const next = nums.length ? Math.max(...nums) + 1 : 1;
+    return `PR-${String(next).padStart(4, '0')}`;
+  },
   async addTicket(t){
     let id = (t.id || '').trim();
     if (!id) {
@@ -101,6 +108,31 @@ const DB = {
       await this.log('addTicket', {id});
     }catch(e){
       console.warn('Não foi possível persistir ticket', e);
+    }
+    return id;
+  },
+  async addProject(p){
+    let id = (p.id || '').trim();
+    if (!id) {
+      id = this.genProjectId();
+    } else if (this.state.projects.some(x => x.id === id)) {
+      throw new Error('ID de projeto já existe.');
+    }
+    const data = { ...p };
+    delete data.id;
+    this.state.projects.push({ id, ...data });
+    this.state.projects.sort((a, b) => parseDateLocal(a.prazo) - parseDateLocal(b.prazo));
+    this.state.materialsByProject[id] = this.state.materialsByProject[id] || [];
+    this.state.rdosByProject[id] = this.state.rdosByProject[id] || [];
+    try{
+      await fetch('/api/db', {
+        method:'PATCH',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({projects:{[id]: data}})
+      });
+      await this.log('addProject', {id});
+    }catch(e){
+      console.warn('Não foi possível persistir projeto', e);
     }
     return id;
   },

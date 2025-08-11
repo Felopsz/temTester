@@ -146,8 +146,10 @@
       tabAdmin: qs('#tabAdmin'),
       adminMenu: qs('#adminMenu'),
       btnAdminCreateTicket: qs('#btnAdminCreateTicket'),
+      btnAdminCreateProject: qs('#btnAdminCreateProject'),
       btnAdminChanges: qs('#btnAdminChanges'),
       sectionCreateTicket: qs('#sectionCreateTicket'),
+      sectionCreateProject: qs('#sectionCreateProject'),
       sectionAdminChanges: qs('#sectionAdminChanges'),
       logFilterDate: qs('#logFilterDate'),
       logsList: qs('#logsList'),
@@ -182,6 +184,7 @@
       setActiveTab(which){
         [els.tabOverview, els.tabTickets, els.tabProjects].forEach(b=> b?.classList.remove('active'));
         hide('#sectionCreateTicket');
+        hide('#sectionCreateProject');
         hide('#sectionAdminChanges');
 
         document.body.classList.remove('projects-page','tickets-page');
@@ -345,6 +348,7 @@
         hide('#sectionTickets');
         hide('#sectionCharts');
         hide('#sectionProjects');
+        hide('#sectionCreateProject');
         show('#sectionCreateTicket');
         document.body.classList.remove('tickets-page','projects-page');
         if (els.sectionPill) els.sectionPill.textContent = 'Criar chamado';
@@ -461,6 +465,106 @@
           // dá foco no primeiro campo
           requestAnimationFrame(()=>{
             qs('#createTicketForm input, #createTicketForm textarea')?.focus();
+          });
+        }
+      },
+
+      showCreateProject(){
+        hide('#sectionTickets');
+        hide('#sectionCharts');
+        hide('#sectionProjects');
+        hide('#sectionCreateTicket');
+        hide('#sectionAdminChanges');
+        show('#sectionCreateProject');
+        document.body.classList.remove('tickets-page','projects-page');
+        if (els.sectionPill) els.sectionPill.textContent = 'Criar projeto';
+
+        requestAnimationFrame(()=>{
+          qs('#sectionCreateProject')?.scrollIntoView({behavior:'smooth', block:'start'});
+          qs('#createProjectForm input, #createProjectForm textarea')?.focus();
+        });
+
+        const form = qs('#createProjectForm');
+        if (form){
+          form.innerHTML='';
+          form.autocomplete='off';
+          const fields=['id','name','desc','prazo','dias','pessoas','diasTrab','pct'];
+          const labels={id:'ID',name:'Nome',desc:'Descrição',prazo:'Prazo',dias:'Dias',pessoas:'Pessoas',diasTrab:'Dias trabalhados',pct:'% de conclusão'};
+          fields.forEach(f=>{
+            const wrap=document.createElement('div');
+            wrap.className='field'+(f==='desc'?' full':'');
+            const label=document.createElement('label');
+            label.textContent=labels[f] || f;
+            let inp;
+            if(f==='desc'){
+              inp=document.createElement('textarea');
+              inp.required=true;
+            }else if(f==='id'){
+              inp=document.createElement('input');
+              inp.type='text';
+              inp.required=true;
+              if(DB && typeof DB.genProjectId==='function'){
+                inp.value=DB.genProjectId();
+              }
+            }else if(f==='prazo'){
+              inp=document.createElement('input');
+              inp.type='date';
+              inp.required=true;
+            }else if(['dias','pessoas','diasTrab','pct'].includes(f)){
+              inp=document.createElement('input');
+              inp.type='number';
+              inp.min='0';
+            }else{
+              inp=document.createElement('input');
+              inp.type='text';
+              inp.required=true;
+            }
+            inp.name=f;
+            inp.autocomplete='off';
+            wrap.appendChild(label);
+            wrap.appendChild(inp);
+            form.appendChild(wrap);
+          });
+
+          const actions=document.createElement('div');
+          actions.className='actions';
+          const btnSave=document.createElement('button');
+          btnSave.type='submit';
+          btnSave.className='btn btn-primary';
+          btnSave.textContent='Salvar';
+          const btnCancel=document.createElement('button');
+          btnCancel.type='button';
+          btnCancel.className='btn';
+          btnCancel.id='cancelCreateProject';
+          btnCancel.textContent='Cancelar';
+          actions.appendChild(btnSave);
+          actions.appendChild(btnCancel);
+          form.appendChild(actions);
+
+          const ui=this;
+          form.addEventListener('submit', async ev=>{
+            ev.preventDefault();
+            const fd=new FormData(form);
+            const proj={};
+            fields.forEach(f=>{ if(fd.has(f)) proj[f]=fd.get(f); });
+            ['dias','pessoas','diasTrab','pct'].forEach(k=>{ proj[k]=Number(proj[k]||0); });
+            try{
+              await DB.addProject(proj);
+              form.reset();
+              ui.renderProjects();
+              ui.updateProjectArrows();
+              ui.setActiveTab('projects');
+            }catch(e){
+              alert(e.message || 'Erro ao salvar projeto');
+            }
+          });
+          qs('#cancelCreateProject')?.addEventListener('click', ()=>{
+            form.reset();
+            ui.setActiveTab('overview');
+          });
+
+          requestAnimationFrame(()=>{
+            qs('#createProjectForm input, #createProjectForm textarea')?.focus();
           });
         }
       },
@@ -793,7 +897,7 @@
         const rdos = DB.state.rdosByProject[p.id] || [];
         if (!els.projDetailsInline) return;
         els.projDetailsInline.innerHTML = `
-          <div class="project-detail">
+          <div class="project-detail-inline">
             <header style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px">
               <strong>${p.name}</strong>
               <span class="badge">${p.pct}%</span>
@@ -866,8 +970,8 @@
           UI.updateProject(p, updated);
         });
         btnDel.addEventListener('click', ()=> UI.deleteProject(p));
-
-        const detail = els.projDetailsInline.querySelector('.project-detail');
+        const detail = els.projDetailsInline.querySelector('.project-detail-inline');
+        els.projDetailsInline.scrollIntoView({behavior:'smooth', block:'start'});
         detail?.addEventListener('click', ev=>{
           const btn = ev.target.closest('.subtab');
           if(!btn) return;
@@ -953,6 +1057,11 @@
     els.tabAdmin?.addEventListener('click', ()=> els.adminMenu?.classList.toggle('open'));
     els.btnAdminCreateTicket?.addEventListener('click', ()=>{
       UI.showCreateTicket();
+      els.adminMenu?.classList.remove('open');
+      els.sidebar?.classList.remove('open');
+    });
+    els.btnAdminCreateProject?.addEventListener('click', ()=>{
+      UI.showCreateProject();
       els.adminMenu?.classList.remove('open');
       els.sidebar?.classList.remove('open');
     });
