@@ -4,7 +4,6 @@ const path = require('path');
 const url = require('url');
 
 const DB_PATH = path.join(__dirname, 'db.json');
-const LOGS_PATH = path.join(__dirname, 'logs.json');
 const PUBLIC_DIR = __dirname;
 
 function deepMerge(target, source) {
@@ -54,45 +53,6 @@ const server = http.createServer((req, res) => {
             if (err2) {
               res.statusCode = 500;
               return res.end(JSON.stringify({ error: 'Failed to write db' }));
-            }
-            res.setHeader('Content-Type', 'application/json');
-            res.end(JSON.stringify({ status: 'ok' }));
-          });
-        });
-      } catch (e) {
-        res.statusCode = 400;
-        res.end(JSON.stringify({ error: 'Invalid JSON' }));
-      }
-    });
-    return;
-  }
-
-  if (req.method === 'GET' && parsed.pathname === '/api/logs') {
-    fs.readFile(LOGS_PATH, 'utf8', (err, data) => {
-      if (err) {
-        res.statusCode = 500;
-        return res.end(JSON.stringify({ error: 'Failed to read logs' }));
-      }
-      res.setHeader('Content-Type', 'application/json');
-      res.end(data || '[]');
-    });
-    return;
-  }
-
-  if (req.method === 'POST' && parsed.pathname === '/api/logs') {
-    let body = '';
-    req.on('data', chunk => (body += chunk));
-    req.on('end', () => {
-      try {
-        const entry = JSON.parse(body || '{}');
-        fs.readFile(LOGS_PATH, 'utf8', (err, data) => {
-          let arr = [];
-          if (!err) { try { arr = JSON.parse(data || '[]'); } catch {} }
-          arr.push(entry);
-          fs.writeFile(LOGS_PATH, JSON.stringify(arr, null, 2), 'utf8', err2 => {
-            if (err2) {
-              res.statusCode = 500;
-              return res.end(JSON.stringify({ error: 'Failed to write logs' }));
             }
             res.setHeader('Content-Type', 'application/json');
             res.end(JSON.stringify({ status: 'ok' }));

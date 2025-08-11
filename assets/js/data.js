@@ -15,13 +15,6 @@ const TICKET_FIELD_LABELS = {
 };
 const TICKET_FIELDS = Object.keys(TICKET_FIELD_LABELS);
 
-function genHistory(finalPct){
-  const pts = []; let v = Math.max(5, Math.min(90, finalPct - 20));
-  for(let i=0;i<8;i++){ v = Math.min(100, Math.max(0, v + (Math.random()*18-5))); pts.push(Math.round(v)); }
-  pts[7] = finalPct;
-  return pts;
-}
-
 function parseDateLocal(str){
   if (!str) return new Date(NaN);
   if (typeof str === 'string' && str.length <= 10){
@@ -42,11 +35,6 @@ const DB = {
     materialsByProject: {},
     rdosByProject: {},
     rdosByTicket: {},
-    notesByProject: {},
-    obsByProject: {},
-    notesByTicket: {},
-    obsByTicket: {},
-    historyByTicket: {},
     users: {},
   },
   async load(rawData){
@@ -55,7 +43,7 @@ const DB = {
     this.state.tickets = Object
       .entries(data.tickets || {})
       .filter(([,t]) => t && typeof t === 'object')
-      .map(([id, t]) => ({ id, ...t }))
+      .map(([id, t]) => ({ id, ...t, notes: t.notes || [], obs: t.obs || {} }))
       .sort((a, b) => {
         const da = parseDateLocal(a.dueDate);
         const db = parseDateLocal(b.dueDate);
@@ -66,7 +54,7 @@ const DB = {
     this.state.archivedTickets = Object
       .entries(data.archivedTickets || {})
       .filter(([,t]) => t && typeof t === 'object')
-      .map(([id, t]) => ({ id, ...t }))
+      .map(([id, t]) => ({ id, ...t, notes: t.notes || [], obs: t.obs || {} }))
       .sort((a, b) => {
         const da = parseDateLocal(a.dueDate);
         const db = parseDateLocal(b.dueDate);
@@ -77,7 +65,7 @@ const DB = {
     this.state.finishedTickets = Object
       .entries(data.finishedTickets || {})
       .filter(([,t]) => t && typeof t === 'object')
-      .map(([id, t]) => ({ id, ...t }))
+      .map(([id, t]) => ({ id, ...t, notes: t.notes || [], obs: t.obs || {} }))
       .sort((a, b) => {
         const da = parseDateLocal(a.dueDate);
         const db = parseDateLocal(b.dueDate);
@@ -88,30 +76,22 @@ const DB = {
     this.state.projects = Object
       .entries(data.projects || {})
       .filter(([,p]) => p && typeof p === 'object')
-      .map(([id, p]) => ({ id, ...p }))
+      .map(([id, p]) => ({ id, ...p, notes: p.notes || [], obs: p.obs || {} }))
       .sort((a, b) => parseDateLocal(a.prazo) - parseDateLocal(b.prazo));
     this.state.archivedProjects = Object
       .entries(data.archivedProjects || {})
       .filter(([,p]) => p && typeof p === 'object')
-      .map(([id, p]) => ({ id, ...p }))
+      .map(([id, p]) => ({ id, ...p, notes: p.notes || [], obs: p.obs || {} }))
       .sort((a, b) => parseDateLocal(a.prazo) - parseDateLocal(b.prazo));
     this.state.finishedProjects = Object
       .entries(data.finishedProjects || {})
       .filter(([,p]) => p && typeof p === 'object')
-      .map(([id, p]) => ({ id, ...p }))
+      .map(([id, p]) => ({ id, ...p, notes: p.notes || [], obs: p.obs || {} }))
       .sort((a, b) => parseDateLocal(a.prazo) - parseDateLocal(b.prazo));
     this.state.materialsByProject = data.materialsByProject || {};
     this.state.rdosByProject = data.rdosByProject || {};
     this.state.rdosByTicket = data.rdosByTicket || {};
-    this.state.notesByProject = data.notesByProject || {};
-    this.state.obsByProject = data.obsByProject || {};
-    this.state.notesByTicket = data.notesByTicket || {};
-    this.state.obsByTicket = data.obsByTicket || {};
     this.state.users = data.users || {};
-    this.state.historyByTicket = {};
-    this.state.tickets.forEach(t=>{
-      this.state.historyByTicket[t.id] = genHistory(t.concl);
-    });
   },
   genTicketId(){
     const nums = this.state.tickets
@@ -136,6 +116,8 @@ const DB = {
     }
     const data = { ...t };
     delete data.id;
+    data.notes = data.notes || [];
+    data.obs = data.obs || {};
     this.state.tickets.push({ id, ...data });
     this.state.tickets.sort((a, b) => {
       const da = parseDateLocal(a.dueDate);
@@ -144,16 +126,12 @@ const DB = {
       if (isNaN(db)) return -1;
       return da - db;
     });
-    this.state.historyByTicket[id] = genHistory(data.concl || 0);
-    this.state.notesByTicket[id] = this.state.notesByTicket[id] || [];
-    this.state.obsByTicket[id] = this.state.obsByTicket[id] || {};
     try{
       await fetch('/api/db', {
         method:'PATCH',
         headers:{'Content-Type':'application/json'},
         body: JSON.stringify({tickets:{[id]: data}})
       });
-      await this.log('addTicket', {id});
     }catch(e){
       console.warn('Não foi possível persistir ticket', e);
     }
@@ -168,19 +146,18 @@ const DB = {
     }
     const data = { ...p };
     delete data.id;
+    data.notes = data.notes || [];
+    data.obs = data.obs || {};
     this.state.projects.push({ id, ...data });
     this.state.projects.sort((a, b) => parseDateLocal(a.prazo) - parseDateLocal(b.prazo));
     this.state.materialsByProject[id] = this.state.materialsByProject[id] || [];
     this.state.rdosByProject[id] = this.state.rdosByProject[id] || [];
-    this.state.notesByProject[id] = this.state.notesByProject[id] || [];
-    this.state.obsByProject[id] = this.state.obsByProject[id] || {};
     try{
       await fetch('/api/db', {
         method:'PATCH',
         headers:{'Content-Type':'application/json'},
         body: JSON.stringify({projects:{[id]: data}})
       });
-      await this.log('addProject', {id});
     }catch(e){
       console.warn('Não foi possível persistir projeto', e);
     }
@@ -196,7 +173,6 @@ const DB = {
         headers:{'Content-Type':'application/json'},
         body: JSON.stringify({tickets:{[id]: copy}})
       });
-      await this.log('updateTicket', {id});
     }catch(e){
       console.warn('Não foi possível persistir ticket', e);
     }
@@ -211,61 +187,64 @@ const DB = {
         headers:{'Content-Type':'application/json'},
         body: JSON.stringify({projects:{[id]: copy}})
       });
-      await this.log('updateProject', {id});
     }catch(e){
       console.warn('Não foi possível persistir projeto', e);
     }
   },
   async addTicketNote(id, text, user){
-    const arr = this.state.notesByTicket[id] || (this.state.notesByTicket[id] = []);
+    const t = this.state.tickets.find(x=>x.id===id);
+    if(!t) return;
+    const arr = t.notes || (t.notes = []);
     arr.push({text, user});
     try{
       await fetch('/api/db', {
         method:'PATCH',
         headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({notesByTicket:{[id]: arr}})
+        body: JSON.stringify({tickets:{[id]: {notes: arr}}})
       });
-      await this.log('addTicketNote', {id});
     }catch(e){
       console.warn('Não foi possível salvar anotação', e);
     }
   },
   async setTicketObs(id, text, user){
-    this.state.obsByTicket[id] = {text, user};
+    const t = this.state.tickets.find(x=>x.id===id);
+    if(!t) return;
+    t.obs = {text, user};
     try{
       await fetch('/api/db', {
         method:'PATCH',
         headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({obsByTicket:{[id]: this.state.obsByTicket[id]}})
+        body: JSON.stringify({tickets:{[id]: {obs: t.obs}}})
       });
-      await this.log('setTicketObs', {id});
     }catch(e){
       console.warn('Não foi possível salvar observação', e);
     }
   },
   async addProjectNote(id, text, user){
-    const arr = this.state.notesByProject[id] || (this.state.notesByProject[id] = []);
+    const p = this.state.projects.find(x=>x.id===id);
+    if(!p) return;
+    const arr = p.notes || (p.notes = []);
     arr.push({text, user});
     try{
       await fetch('/api/db', {
         method:'PATCH',
         headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({notesByProject:{[id]: arr}})
+        body: JSON.stringify({projects:{[id]: {notes: arr}}})
       });
-      await this.log('addProjectNote', {id});
     }catch(e){
       console.warn('Não foi possível salvar anotação', e);
     }
   },
   async setProjectObs(id, text, user){
-    this.state.obsByProject[id] = {text, user};
+    const p = this.state.projects.find(x=>x.id===id);
+    if(!p) return;
+    p.obs = {text, user};
     try{
       await fetch('/api/db', {
         method:'PATCH',
         headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({obsByProject:{[id]: this.state.obsByProject[id]}})
+        body: JSON.stringify({projects:{[id]: {obs: p.obs}}})
       });
-      await this.log('setProjectObs', {id});
     }catch(e){
       console.warn('Não foi possível salvar observação', e);
     }
@@ -280,7 +259,6 @@ const DB = {
         headers:{'Content-Type':'application/json'},
         body: JSON.stringify({tickets:{[t.id]: null}, archivedTickets:{[t.id]: {...t}}})
       });
-      await this.log('archiveTicket', {id:t.id});
     }catch(e){ console.warn('Não foi possível arquivar ticket', e); }
   },
   async finishTicket(t){
@@ -293,7 +271,6 @@ const DB = {
         headers:{'Content-Type':'application/json'},
         body: JSON.stringify({tickets:{[t.id]: null}, finishedTickets:{[t.id]: {...t}}})
       });
-      await this.log('finishTicket', {id:t.id});
     }catch(e){ console.warn('Não foi possível finalizar ticket', e); }
   },
   async restoreTicket(t, from){
@@ -312,7 +289,6 @@ const DB = {
         headers:{'Content-Type':'application/json'},
         body: JSON.stringify({[key]:{[t.id]: null}, tickets:{[t.id]: {...t}}})
       });
-      await this.log('restoreTicket', {id:t.id, from});
     }catch(e){ console.warn('Não foi possível restaurar ticket', e); }
   },
   async deleteTicketPermanent(t, from){
@@ -321,16 +297,12 @@ const DB = {
     const key = from==='archived'?'archivedTickets':'finishedTickets';
     const idx=list.indexOf(t); if(idx>-1) list.splice(idx,1);
     delete this.state.rdosByTicket[t.id];
-    delete this.state.historyByTicket[t.id];
-    delete this.state.notesByTicket[t.id];
-    delete this.state.obsByTicket[t.id];
     try{
       await fetch('/api/db', {
         method:'PATCH',
         headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({[key]:{[t.id]: null}, rdosByTicket:{[t.id]: null}, notesByTicket:{[t.id]: null}, obsByTicket:{[t.id]: null}})
+        body: JSON.stringify({[key]:{[t.id]: null}, rdosByTicket:{[t.id]: null}})
       });
-      await this.log('deleteTicketPermanent', {id:t.id, from});
     }catch(e){ console.warn('Não foi possível excluir ticket', e); }
   },
   async archiveProject(p){
@@ -343,7 +315,6 @@ const DB = {
         headers:{'Content-Type':'application/json'},
         body: JSON.stringify({projects:{[p.id]: null}, archivedProjects:{[p.id]: {...p}}})
       });
-      await this.log('archiveProject', {id:p.id});
     }catch(e){ console.warn('Não foi possível arquivar projeto', e); }
   },
   async finishProject(p){
@@ -356,7 +327,6 @@ const DB = {
         headers:{'Content-Type':'application/json'},
         body: JSON.stringify({projects:{[p.id]: null}, finishedProjects:{[p.id]: {...p}}})
       });
-      await this.log('finishProject', {id:p.id});
     }catch(e){ console.warn('Não foi possível finalizar projeto', e); }
   },
   async restoreProject(p, from){
@@ -372,7 +342,6 @@ const DB = {
         headers:{'Content-Type':'application/json'},
         body: JSON.stringify({[key]:{[p.id]: null}, projects:{[p.id]: {...p}}})
       });
-      await this.log('restoreProject', {id:p.id, from});
     }catch(e){ console.warn('Não foi possível restaurar projeto', e); }
   },
   async deleteProjectPermanent(p, from){
@@ -382,33 +351,13 @@ const DB = {
     const idx=list.indexOf(p); if(idx>-1) list.splice(idx,1);
     delete this.state.materialsByProject[p.id];
     if (this.state.rdosByProject[p.id]) delete this.state.rdosByProject[p.id];
-    delete this.state.notesByProject[p.id];
-    delete this.state.obsByProject[p.id];
     try{
       await fetch('/api/db', {
         method:'PATCH',
         headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({[key]:{[p.id]: null}, materialsByProject:{[p.id]: null}, rdosByProject:{[p.id]: null}, notesByProject:{[p.id]: null}, obsByProject:{[p.id]: null}})
+        body: JSON.stringify({[key]:{[p.id]: null}, materialsByProject:{[p.id]: null}, rdosByProject:{[p.id]: null}})
       });
-      await this.log('deleteProjectPermanent', {id:p.id, from});
     }catch(e){ console.warn('Não foi possível excluir projeto', e); }
-  }
-};
-
-DB.log = async function(action, payload){
-  try{
-    await fetch('/api/logs', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({
-        ts: new Date().toISOString(),
-        user: CURRENT_USER,
-        action,
-        payload
-      })
-    });
-  }catch(e){
-    console.warn('Não foi possível registrar log', e);
   }
 };
 

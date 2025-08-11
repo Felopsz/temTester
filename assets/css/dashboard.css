@@ -431,8 +431,7 @@ body.tv-mode .section{
 }
 /* === Criar/Editar: layout premium === */
 #sectionCreateTicket,
-#sectionCreateProject,
-#sectionAdminChanges{ grid-column: 1 / -1; }
+#sectionCreateProject{ grid-column: 1 / -1; }
 
 .edit-form{
   width: 100%;
@@ -499,9 +498,7 @@ body.tv-mode .section{
 #sectionCreateTicket,
 #sectionCreateTicket .edit-form,
 #sectionCreateProject,
-#sectionCreateProject .edit-form,
-#sectionAdminChanges,
-#sectionAdminChanges #logsList {
+#sectionCreateProject .edit-form {
   scrollbar-width: thin;
   scrollbar-color: rgba(122,162,255,.5) rgba(255,255,255,.06);
 }
@@ -509,18 +506,14 @@ body.tv-mode .section{
 #sectionCreateTicket::-webkit-scrollbar,
 #sectionCreateTicket .edit-form::-webkit-scrollbar,
 #sectionCreateProject::-webkit-scrollbar,
-#sectionCreateProject .edit-form::-webkit-scrollbar,
-#sectionAdminChanges::-webkit-scrollbar,
-#sectionAdminChanges #logsList::-webkit-scrollbar{
+#sectionCreateProject .edit-form::-webkit-scrollbar{
   width: 10px;
 }
 .content.panel::-webkit-scrollbar-track,
 #sectionCreateTicket::-webkit-scrollbar-track,
 #sectionCreateTicket .edit-form::-webkit-scrollbar-track,
 #sectionCreateProject::-webkit-scrollbar-track,
-#sectionCreateProject .edit-form::-webkit-scrollbar-track,
-#sectionAdminChanges::-webkit-scrollbar-track,
-#sectionAdminChanges #logsList::-webkit-scrollbar-track{
+#sectionCreateProject .edit-form::-webkit-scrollbar-track{
   background: rgba(255,255,255,.06);
   border-radius: 10px;
 }
@@ -528,29 +521,9 @@ body.tv-mode .section{
 #sectionCreateTicket::-webkit-scrollbar-thumb,
 #sectionCreateTicket .edit-form::-webkit-scrollbar-thumb,
 #sectionCreateProject::-webkit-scrollbar-thumb,
-#sectionCreateProject .edit-form::-webkit-scrollbar-thumb,
-#sectionAdminChanges::-webkit-scrollbar-thumb,
-#sectionAdminChanges #logsList::-webkit-scrollbar-thumb{
+#sectionCreateProject .edit-form::-webkit-scrollbar-thumb{
   background: linear-gradient(180deg, var(--brand), var(--brand-strong));
   border-radius: 10px;
   border: 2px solid rgba(255,255,255,.06);
 }
 
-/* Lista de logs organizada */
-#sectionAdminChanges #logsList{
-  list-style: none;
-  padding: 0;
-  margin-top: 8px;
-  display: grid;
-  gap: 8px;
-  max-height: clamp(220px, 40vh, 440px);
-  overflow: auto;
-}
-
-#sectionAdminChanges #logsList li{
-  background: #0f131a;
-  border: 1px solid var(--card-border);
-  border-radius: 10px;
-  padding: 8px 10px;
-  font-size: 13px;
-}

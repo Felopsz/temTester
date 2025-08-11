@@ -45,11 +45,9 @@ const tpl = {
               <button class="navbtn" id="btnAdminCreateTicket">Criar chamado</button>
               <button class="navbtn" id="btnAdminArchivedTickets">Chamados arquivados</button>
               <button class="navbtn" id="btnAdminFinishedTickets">Chamados finalizados</button>
-              <button class="navbtn" id="btnAdminHistory">Histórico</button>
               <button class="navbtn" id="btnAdminCreateProject">Criar projeto</button>
               <button class="navbtn" id="btnAdminArchivedProjects">Projetos arquivados</button>
               <button class="navbtn" id="btnAdminFinishedProjects">Projetos finalizados</button>
-              <button class="navbtn" id="btnAdminChanges">Alterações</button>
             </div>
             <!-- menu admin-only -->
             <button class="navbtn" id="tabConfig">Configurações</button>
@@ -109,10 +107,10 @@ const tpl = {
               <div class="subtab-panel active" id="tdDesc" style="padding-top:10px"></div>
               <div class="subtab-panel" id="tdNotes" style="display:none;padding-top:10px">
                 <ul id="tdNotesList" style="display:grid; gap:6px; margin-left:18px"></ul>
-                <form id="tdNoteForm" style="margin-top:8px">
+                <div id="tdNoteForm" style="margin-top:8px">
                   <textarea style="width:100%; min-height:120px; background:#0f131a; border:1px solid var(--card-border); border-radius:10px; color:var(--text); padding:10px" placeholder="Escreva anotações do chamado..." autocomplete="off"></textarea>
-                  <div class="actions" style="margin-top:6px"><button type="submit" class="btn btn-primary">Adicionar</button></div>
-                </form>
+                  <div class="actions" style="margin-top:6px"><button type="button" class="btn btn-primary" id="tdAddNoteBtn">Adicionar</button></div>
+                </div>
               </div>
               <div class="subtab-panel" id="tdRDO" style="display:none;padding-top:10px">
                 <ul id="tdRDOList" style="display:grid; gap:6px; margin-left:18px"></ul>
@@ -127,7 +125,6 @@ const tpl = {
             <h2>Andamento do chamado selecionado</h2>
             <div class="chart">
               <h3>Progresso ao longo do tempo (%)</h3>
-              <div class="svg-wrap"><svg id="chartProgress" viewBox="0 0 100 40" preserveAspectRatio="none"></svg></div>
             </div>
             <div class="chart">
               <h3>Prazo consumido vs Conclusão (%)</h3>
@@ -230,12 +227,6 @@ const tpl = {
                 <tbody></tbody>
               </table>
             </div>
-          </section>
-          <!-- ADMIN: alterações -->
-          <section class="section" id="sectionAdminChanges" style="display:none">
-            <h2>Alterações</h2>
-            <input type="date" id="logFilterDate" style="max-width:200px" />
-            <ul id="logsList" style="display:grid; gap:6px; margin-top:8px"></ul>
           </section>
         </main>
       </div>`

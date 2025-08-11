@@ -126,7 +126,6 @@
       tabProjects: qs('#tabProjects'),
       tabConfig: qs('#tabConfig'),
       ticketsTableBody: qs('#ticketsTable tbody'),
-      chartProgress: qs('#chartProgress'),
       chartSLA: qs('#chartSLA'),
       projectsCarousel: qs('#projectsCarousel'),
       caroPrev: qs('#caroPrev'),
@@ -147,14 +146,12 @@
       adminMenu: qs('#adminMenu'),
       btnAdminCreateTicket: qs('#btnAdminCreateTicket'),
       btnAdminCreateProject: qs('#btnAdminCreateProject'),
-      btnAdminChanges: qs('#btnAdminChanges'),
       btnAdminArchivedTickets: qs('#btnAdminArchivedTickets'),
       btnAdminFinishedTickets: qs('#btnAdminFinishedTickets'),
       btnAdminArchivedProjects: qs('#btnAdminArchivedProjects'),
       btnAdminFinishedProjects: qs('#btnAdminFinishedProjects'),
       sectionCreateTicket: qs('#sectionCreateTicket'),
       sectionCreateProject: qs('#sectionCreateProject'),
-      sectionAdminChanges: qs('#sectionAdminChanges'),
       sectionArchivedTickets: qs('#sectionArchivedTickets'),
       sectionFinishedTickets: qs('#sectionFinishedTickets'),
       sectionArchivedProjects: qs('#sectionArchivedProjects'),
@@ -163,8 +160,6 @@
       finishedTicketsBody: qs('#finishedTicketsTable tbody'),
       archivedProjectsBody: qs('#archivedProjectsTable tbody'),
       finishedProjectsBody: qs('#finishedProjectsTable tbody'),
-      logFilterDate: qs('#logFilterDate'),
-      logsList: qs('#logsList'),
       _subtabsBound: false,
     };
 
@@ -197,7 +192,6 @@
         [els.tabOverview, els.tabTickets, els.tabProjects].forEach(b=> b?.classList.remove('active'));
         hide('#sectionCreateTicket');
         hide('#sectionCreateProject');
-        hide('#sectionAdminChanges');
         hide('#sectionArchivedTickets');
         hide('#sectionFinishedTickets');
         hide('#sectionArchivedProjects');
@@ -244,7 +238,7 @@
 
       _renderOverview(){
         const t = this._selected || DB.state.tickets[0];
-        this.renderProgressChart(DB.state.historyByTicket[t.id], 'chartProgress');
+        if (!t) return;
         const p = computePrazoPct(t.createdAt, t.dueDate);
         this.renderSLAChart(t.concl, Math.min(p,100), 'chartSLA');
       },
@@ -606,7 +600,6 @@
         hide('#sectionCharts');
         hide('#sectionProjects');
         hide('#sectionCreateTicket');
-        hide('#sectionAdminChanges');
         show('#sectionCreateProject');
         document.body.classList.remove('tickets-page','projects-page');
         if (els.sectionPill) els.sectionPill.textContent = 'Criar projeto';
@@ -701,36 +694,9 @@
         }
       },
 
-      showAdminChanges(){
-        hide('#sectionTickets');
-        hide('#sectionCharts');
-        hide('#sectionProjects');
-        hide('#sectionCreateTicket');
-        show('#sectionAdminChanges');
-        document.body.classList.remove('tickets-page','projects-page');
-        if (els.sectionPill) els.sectionPill.textContent = 'Alterações';
-        (async()=>{
-          try{
-            const res = await fetch('/api/logs');
-            const logs = await res.json();
-            const render = ()=>{
-              const filt = els.logFilterDate?.value;
-              const items = (logs||[])
-                .filter(l=> !filt || (l.ts||'').slice(0,10) === filt)
-                .map(l=>`<li>${new Date(l.ts).toLocaleString('pt-BR')} - ${l.user} - ${l.action}</li>`)
-                .join('');
-              if (els.logsList) els.logsList.innerHTML = items || '<li>Nenhum log.</li>';
-            };
-            render();
-            els.logFilterDate?.addEventListener('change', render);
-          }catch(e){
-            console.warn('Não foi possível carregar logs', e);
-          }
-        })();
-      },
 
       showArchivedTickets(){
-        hide('#sectionTickets'); hide('#sectionCharts'); hide('#sectionProjects'); hide('#sectionCreateTicket'); hide('#sectionCreateProject'); hide('#sectionAdminChanges'); hide('#sectionFinishedTickets'); hide('#sectionArchivedProjects'); hide('#sectionFinishedProjects');
+        hide('#sectionTickets'); hide('#sectionCharts'); hide('#sectionProjects'); hide('#sectionCreateTicket'); hide('#sectionCreateProject'); hide('#sectionFinishedTickets'); hide('#sectionArchivedProjects'); hide('#sectionFinishedProjects');
         show('#sectionArchivedTickets');
         document.body.classList.add('tickets-page');
         document.body.classList.remove('projects-page');
@@ -738,7 +704,7 @@
         this.renderArchivedTickets();
       },
       showFinishedTickets(){
-        hide('#sectionTickets'); hide('#sectionCharts'); hide('#sectionProjects'); hide('#sectionCreateTicket'); hide('#sectionCreateProject'); hide('#sectionAdminChanges'); hide('#sectionArchivedTickets'); hide('#sectionArchivedProjects'); hide('#sectionFinishedProjects');
+        hide('#sectionTickets'); hide('#sectionCharts'); hide('#sectionProjects'); hide('#sectionCreateTicket'); hide('#sectionCreateProject'); hide('#sectionArchivedTickets'); hide('#sectionArchivedProjects'); hide('#sectionFinishedProjects');
         show('#sectionFinishedTickets');
         document.body.classList.add('tickets-page');
         document.body.classList.remove('projects-page');
@@ -746,7 +712,7 @@
         this.renderFinishedTickets();
       },
       showArchivedProjects(){
-        hide('#sectionTickets'); hide('#sectionCharts'); hide('#sectionProjects'); hide('#sectionCreateTicket'); hide('#sectionCreateProject'); hide('#sectionAdminChanges'); hide('#sectionArchivedTickets'); hide('#sectionFinishedTickets'); hide('#sectionFinishedProjects');
+        hide('#sectionTickets'); hide('#sectionCharts'); hide('#sectionProjects'); hide('#sectionCreateTicket'); hide('#sectionCreateProject'); hide('#sectionArchivedTickets'); hide('#sectionFinishedTickets'); hide('#sectionFinishedProjects');
         show('#sectionArchivedProjects');
         document.body.classList.add('projects-page');
         document.body.classList.remove('tickets-page');
@@ -754,7 +720,7 @@
         this.renderArchivedProjects();
       },
       showFinishedProjects(){
-        hide('#sectionTickets'); hide('#sectionCharts'); hide('#sectionProjects'); hide('#sectionCreateTicket'); hide('#sectionCreateProject'); hide('#sectionAdminChanges'); hide('#sectionArchivedTickets'); hide('#sectionFinishedTickets'); hide('#sectionArchivedProjects');
+        hide('#sectionTickets'); hide('#sectionCharts'); hide('#sectionProjects'); hide('#sectionCreateTicket'); hide('#sectionCreateProject'); hide('#sectionArchivedTickets'); hide('#sectionFinishedTickets'); hide('#sectionArchivedProjects');
         show('#sectionFinishedProjects');
         document.body.classList.add('projects-page');
         document.body.classList.remove('tickets-page');
@@ -769,7 +735,6 @@
         this._selected = t;
         if(this._selectedRow){ this._selectedRow.classList.remove('selected'); }
         if(rowEl){ rowEl.classList.add('selected'); this._selectedRow = rowEl; }
-        this.renderProgressChart(DB.state.historyByTicket[t.id]);
         const p = computePrazoPct(t.createdAt, t.dueDate);
         this.renderSLAChart(t.concl, Math.min(p,100));
       },
@@ -803,24 +768,24 @@
 
         if (els.tdNotes) {
           const listEl = qs('#tdNotesList', els.tdNotes);
-          const notes = DB.state.notesByTicket[t.id] || [];
+          const notes = t.notes || [];
           if (listEl) listEl.innerHTML = notes.map(n=>`<li><b>${n.user}:</b> ${n.text}</li>`).join('') || '<li>Nenhuma anotação.</li>';
           const form = qs('#tdNoteForm', els.tdNotes);
-          if (form && !form._bound) {
-            form.addEventListener('submit', ev=>{
-              ev.preventDefault();
+          const btn = qs('#tdAddNoteBtn', form);
+          if (btn && !btn._bound) {
+            btn.addEventListener('click', ()=>{
               const ta = qs('textarea', form);
               const text = ta.value.trim();
               if (!text) return;
               UI.addTicketNote(t, text);
               ta.value = '';
             });
-            form._bound = true;
+            btn._bound = true;
           }
         }
 
         if (els.tdObs) {
-          const obs = DB.state.obsByTicket[t.id] || {};
+          const obs = t.obs || {};
           if (CURRENT_ROLE === 'admin') {
             els.tdObs.innerHTML = `<form id="tdObsForm"><textarea style="width:100%; min-height:120px; background:#0f131a; border:1px solid var(--card-border); border-radius:10px; color:var(--text); padding:10px" placeholder="Observações gerais..." autocomplete="off">${obs.text||''}</textarea><div class="actions" style="margin-top:6px"><button type="submit" class="btn btn-primary">Salvar</button></div></form>`;
             const form = qs('#tdObsForm', els.tdObs);
@@ -976,10 +941,8 @@
       async editTicket(t, updated){
         if (updated.id !== t.id){
           if (DB.state.rdosByTicket[t.id]){ DB.state.rdosByTicket[updated.id] = DB.state.rdosByTicket[t.id]; delete DB.state.rdosByTicket[t.id]; }
-          if (DB.state.historyByTicket[t.id]){ DB.state.historyByTicket[updated.id] = DB.state.historyByTicket[t.id]; delete DB.state.historyByTicket[t.id]; }
         }
         Object.assign(t, updated);
-        DB.state.historyByTicket[t.id] = genHistory(t.concl);
         DB.state.tickets.sort((a, b) => {
           const da = parseDateLocal(a.dueDate);
           const db = parseDateLocal(b.dueDate);
@@ -1073,34 +1036,6 @@
         UI.renderFinishedProjects();
       },
 
-      // ===== Charts (andamento) =====
-      renderProgressChart(series, targetId='chartProgress'){
-        const svg = targetId ? qs('#'+targetId) : els.chartProgress;
-        if (!svg) return;
-        const pts = (series && series.length ? series : [5,12,18,32,46,60,75,90]);
-        const path = pts.map((v,i)=>{
-          const x = (i/(pts.length-1))*100; const y = 38 - (v*0.35);
-          return `${i? 'L':'M'} ${x.toFixed(2)} ${y.toFixed(2)}`;
-        }).join(' ');
-        const dots = pts.map((v,i)=>{
-          const x = (i/(pts.length-1))*100; const y = 38 - (v*0.35);
-          return `<circle cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="1.3" fill="url(#gradP)" />`;
-        }).join('');
-        svg.innerHTML = `
-          <defs>
-            <linearGradient id="gradP" x1="0" x2="0" y1="0" y2="1">
-              <stop offset="0%" stop-color="${cssVar('--brand')}"/>
-              <stop offset="100%" stop-color="${cssVar('--brand-strong')}"/>
-            </linearGradient>
-          </defs>
-          <path d="${path}" fill="none" stroke="url(#gradP)" stroke-width="1.2" />
-          ${dots}
-          <g fill="#9aa0a6" font-size="3.2">
-            <text x="0" y="39">0%</text>
-            <text x="92" y="39">100%</text>
-          </g>`;
-      },
-
       renderSLAChart(concl, prazo, targetId='chartSLA'){
         const svg = targetId ? qs('#'+targetId) : els.chartSLA;
         if (!svg) return;
@@ -1163,7 +1098,7 @@
               <button class="subtab" data-tab="pdEditForm" style="background:transparent;border:1px solid var(--card-border);border-bottom:0;padding:8px 12px;border-top-left-radius:10px;border-top-right-radius:10px;cursor:pointer;color:var(--text)">Editar</button>
             </div>
             <div class="subtab-panel active" id="pdDesc" style="padding-top:10px"><p>${p.desc}</p></div>
-            <div class="subtab-panel" id="pdNotes" style="display:none;padding-top:10px"><ul id="pdNotesList" style="display:grid; gap:6px; margin-left:18px"></ul><form id="pdNoteForm" style="margin-top:8px"><textarea style="width:100%; min-height:120px; background:#0f131a; border:1px solid var(--card-border); border-radius:10px; color:var(--text); padding:10px" placeholder="Anotações do projeto..." autocomplete="off"></textarea><div class="actions" style="margin-top:6px"><button type="submit" class="btn btn-primary">Adicionar</button></div></form></div>
+            <div class="subtab-panel" id="pdNotes" style="display:none;padding-top:10px"><ul id="pdNotesList" style="display:grid; gap:6px; margin-left:18px"></ul><div id="pdNoteForm" style="margin-top:8px"><textarea style="width:100%; min-height:120px; background:#0f131a; border:1px solid var(--card-border); border-radius:10px; color:var(--text); padding:10px" placeholder="Anotações do projeto..." autocomplete="off"></textarea><div class="actions" style="margin-top:6px"><button type="button" class="btn btn-primary" id="pdAddNoteBtn">Adicionar</button></div></div></div>
             <div class="subtab-panel" id="pdRDO" style="display:none;padding-top:10px"><ul id="pdRDOList" style="display:grid; gap:6px; margin-left:18px">${rdos.map(r=>`<li>${r}</li>`).join('') || '<li>Nenhum RDO registrado.</li>'}</ul></div>
           <div class="subtab-panel" id="pdObs" style="display:none;padding-top:10px"></div>
           <div class="subtab-panel" id="pdEditForm" style="display:none;padding-top:10px"></div>
@@ -1171,23 +1106,23 @@
 
         const notesPanel = qs('#pdNotes', els.projDetailsInline);
         const nList = qs('#pdNotesList', notesPanel);
-        const notes = DB.state.notesByProject[p.id] || [];
+        const notes = p.notes || [];
         if (nList) nList.innerHTML = notes.map(n=>`<li><b>${n.user}:</b> ${n.text}</li>`).join('') || '<li>Nenhuma anotação.</li>';
         const nForm = qs('#pdNoteForm', notesPanel);
-        if (nForm && !nForm._bound){
-          nForm.addEventListener('submit', ev=>{
-            ev.preventDefault();
+        const nBtn = qs('#pdAddNoteBtn', nForm);
+        if (nBtn && !nBtn._bound){
+          nBtn.addEventListener('click', ()=>{
             const ta = qs('textarea', nForm);
             const text = ta.value.trim();
             if (!text) return;
             UI.addProjectNote(p, text);
             ta.value = '';
           });
-          nForm._bound = true;
+          nBtn._bound = true;
         }
 
         const obsPanel = qs('#pdObs', els.projDetailsInline);
-        const obs = DB.state.obsByProject[p.id] || {};
+        const obs = p.obs || {};
         if (CURRENT_ROLE === 'admin') {
           obsPanel.innerHTML = `<form id="pdObsForm"><textarea style="width:100%; min-height:120px; background:#0f131a; border:1px solid var(--card-border); border-radius:10px; color:var(--text); padding:10px" placeholder="Observações gerais..." autocomplete="off">${obs.text||''}</textarea><div class="actions" style="margin-top:6px"><button type="submit" class="btn btn-primary">Salvar</button></div></form>`;
           const oform = qs('#pdObsForm', obsPanel);
@@ -1346,11 +1281,6 @@
     });
     els.btnAdminCreateProject?.addEventListener('click', ()=>{
       UI.showCreateProject();
-      els.adminMenu?.classList.remove('open');
-      els.sidebar?.classList.remove('open');
-    });
-    els.btnAdminChanges?.addEventListener('click', ()=>{
-      UI.showAdminChanges();
       els.adminMenu?.classList.remove('open');
       els.sidebar?.classList.remove('open');
     });

@@ -25,5 +25,3 @@ Execute `npm start` para iniciar um servidor HTTP simples que também expõe uma
 Endpoints:
 - `GET /api/db` — retorna o conteúdo atual de `db.json`.
 - `PATCH /api/db` — mescla os dados enviados e persiste no `db.json`.
-- `GET /api/logs` — retorna o histórico de alterações.
-- `POST /api/logs` — adiciona uma entrada de log.
