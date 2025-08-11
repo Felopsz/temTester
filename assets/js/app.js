@@ -146,7 +146,11 @@
       tabAdmin: qs('#tabAdmin'),
       adminMenu: qs('#adminMenu'),
       btnAdminCreateTicket: qs('#btnAdminCreateTicket'),
+      btnAdminChanges: qs('#btnAdminChanges'),
       sectionCreateTicket: qs('#sectionCreateTicket'),
+      sectionAdminChanges: qs('#sectionAdminChanges'),
+      logFilterDate: qs('#logFilterDate'),
+      logsList: qs('#logsList'),
       _subtabsBound: false,
     };
 
@@ -178,6 +182,7 @@
       setActiveTab(which){
         [els.tabOverview, els.tabTickets, els.tabProjects].forEach(b=> b?.classList.remove('active'));
         hide('#sectionCreateTicket');
+        hide('#sectionAdminChanges');
 
         document.body.classList.remove('projects-page','tickets-page');
         if (which === 'projects') document.body.classList.add('projects-page');
@@ -341,6 +346,7 @@
         hide('#sectionCharts');
         hide('#sectionProjects');
         show('#sectionCreateTicket');
+        document.body.classList.remove('tickets-page','projects-page');
         if (els.sectionPill) els.sectionPill.textContent = 'Criar chamado';
 
         // garante que o painel entre em cena com scroll e foco
@@ -355,9 +361,9 @@
           form.innerHTML = '';
           form.autocomplete = 'off';
 
-          // Renderiza os campos baseando-se em TICKET_FIELDS (exceto id), injeta dueDate se não existir
+          // Renderiza os campos baseando-se em TICKET_FIELDS, injeta dueDate se não existir
           const fieldsToRender = Array.isArray(window.TICKET_FIELDS)
-            ? TICKET_FIELDS.filter(f => f !== 'id')
+            ? [...TICKET_FIELDS]
             : [];
           if (!fieldsToRender.includes('dueDate')) {
             const idx = Math.max(0, fieldsToRender.indexOf('createdAt'));
@@ -375,6 +381,13 @@
             if (f === 'descricao') {
               inp = document.createElement('textarea');
               inp.required = true;
+            } else if (f === 'id') {
+              inp = document.createElement('input');
+              inp.type = 'text';
+              inp.required = true;
+              if (DB && typeof DB.genTicketId === 'function') {
+                inp.value = DB.genTicketId();
+              }
             } else if (f === 'createdAt') {
               inp = document.createElement('input');
               inp.type = 'datetime-local';
@@ -427,17 +440,18 @@
             ev.preventDefault();
             const fd = new FormData(form);
             const t = {};
-            // inclui também dueDate se inserimos manualmente
-            const allKeys = new Set([...(window.TICKET_FIELDS||[]).filter(f=>f!=='id'), 'dueDate']);
-            allKeys.forEach(f=>{ if (fd.has(f)) t[f] = fd.get(f); });
-
+            fieldsToRender.forEach(f=>{ if (fd.has(f)) t[f] = fd.get(f); });
             t.concl = Number(t.concl || 0);
-            await DB.addTicket(t);
-            form.reset();
-            ui.renderTickets();
-            ui.setActiveTab('tickets');
-            els.adminMenu?.classList.remove('open');
-            els.sidebar?.classList.remove('open');
+            try{
+              await DB.addTicket(t);
+              form.reset();
+              ui.renderTickets();
+              ui.setActiveTab('tickets');
+              els.adminMenu?.classList.remove('open');
+              els.sidebar?.classList.remove('open');
+            }catch(e){
+              alert(e.message || 'Erro ao salvar chamado');
+            }
           });
           qs('#cancelCreateTicket')?.addEventListener('click', ()=>{
             form.reset();
@@ -449,6 +463,34 @@
             qs('#createTicketForm input, #createTicketForm textarea')?.focus();
           });
         }
+      },
+
+      showAdminChanges(){
+        hide('#sectionTickets');
+        hide('#sectionCharts');
+        hide('#sectionProjects');
+        hide('#sectionCreateTicket');
+        show('#sectionAdminChanges');
+        document.body.classList.remove('tickets-page','projects-page');
+        if (els.sectionPill) els.sectionPill.textContent = 'Alterações';
+        (async()=>{
+          try{
+            const res = await fetch('/api/logs');
+            const logs = await res.json();
+            const render = ()=>{
+              const filt = els.logFilterDate?.value;
+              const items = (logs||[])
+                .filter(l=> !filt || (l.ts||'').slice(0,10) === filt)
+                .map(l=>`<li>${new Date(l.ts).toLocaleString('pt-BR')} - ${l.user} - ${l.action}</li>`)
+                .join('');
+              if (els.logsList) els.logsList.innerHTML = items || '<li>Nenhum log.</li>';
+            };
+            render();
+            els.logFilterDate?.addEventListener('change', render);
+          }catch(e){
+            console.warn('Não foi possível carregar logs', e);
+          }
+        })();
       },
 
       // *** ainda dentro de UI ***
@@ -629,38 +671,56 @@
         UI.openTicketDetail(t);
       },
 
-      deleteTicket(t){
+      async deleteTicket(t){
         if(!confirm('Excluir chamado?')) return;
         DB.state.tickets = DB.state.tickets.filter(x=>x!==t);
         delete DB.state.rdosByTicket[t.id];
         delete DB.state.historyByTicket[t.id];
         UI.renderTickets();
         clearTicketDetail(els);
+        try{
+          await fetch('/api/db', {
+            method:'PATCH',
+            headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({tickets:{[t.id]: null}})
+          });
+          await DB.log('deleteTicket', {id: t.id});
+        }catch(e){
+          console.warn('Não foi possível excluir ticket', e);
+        }
       },
 
-      editProject(p){
-        const fields = ['id','name','desc','prazo','dias','pessoas','diasTrab','pct'];
-        const updated = { ...p };
-        fields.forEach(f => {
-          const val = prompt(`Novo ${f}`, p[f] ?? '');
-          if (val !== null) updated[f] = val;
-        });
+      updateProject(p, updated){
         if (updated.id !== p.id){
           if (DB.state.materialsByProject[p.id]){ DB.state.materialsByProject[updated.id] = DB.state.materialsByProject[p.id]; delete DB.state.materialsByProject[p.id]; }
+          if (DB.state.rdosByProject[p.id]){ DB.state.rdosByProject[updated.id] = DB.state.rdosByProject[p.id]; delete DB.state.rdosByProject[p.id]; }
         }
         Object.assign(p, updated);
+        DB.state.projects.sort((a,b)=> parseDateLocal(a.prazo) - parseDateLocal(b.prazo));
+        DB.updateProject(p.id, p);
         UI.renderProjects();
         UI.updateProjectArrows();
         UI.openProjectDetailInline(p);
       },
 
-      deleteProject(p){
+      async deleteProject(p){
         if(!confirm('Excluir projeto?')) return;
         DB.state.projects = DB.state.projects.filter(x=>x!==p);
         delete DB.state.materialsByProject[p.id];
+        if (DB.state.rdosByProject[p.id]) delete DB.state.rdosByProject[p.id];
         UI.renderProjects();
         UI.updateProjectArrows();
         if(els.projDetailsInline) els.projDetailsInline.innerHTML = '';
+        try{
+          await fetch('/api/db', {
+            method:'PATCH',
+            headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({projects:{[p.id]: null}})
+          });
+          await DB.log('deleteProject', {id: p.id});
+        }catch(e){
+          console.warn('Não foi possível excluir projeto', e);
+        }
       },
 
       // ===== Charts (andamento) =====
@@ -730,30 +790,94 @@
       },
       openProjectDetailInline(p){
         UI.setActiveTab('projects');
-        const mats = DB.state.materialsByProject[p.id] || [];
+        const rdos = DB.state.rdosByProject[p.id] || [];
         if (!els.projDetailsInline) return;
         els.projDetailsInline.innerHTML = `
-          <header style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px">
-            <strong>${p.name}</strong>
-            <div style="display:flex; gap:6px; align-items:center">
+          <div class="project-detail">
+            <header style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px">
+              <strong>${p.name}</strong>
               <span class="badge">${p.pct}%</span>
-              <button class="edit-btn" id="projEdit">Editar</button>
-              <button class="del-btn" id="projDel">Excluir</button>
+            </header>
+            <div id="pdMeta" style="display:flex; gap:12px; flex-wrap:wrap; color:var(--muted); font-size:13px">
+              <span><b>Prazo:</b> ${new Date(p.prazo).toLocaleDateString('pt-BR')}</span>
+              <span><b>Dias:</b> ${p.dias}</span>
+              <span><b>Pessoas:</b> ${p.pessoas}</span>
+              <span><b>Dias trabalhados:</b> ${p.diasTrab}</span>
             </div>
-          </header>
-          <div style="display:flex; gap:12px; flex-wrap:wrap; color:var(--muted); font-size:13px">
-            <span><b>Prazo:</b> ${new Date(p.prazo).toLocaleDateString('pt-BR')}</span>
-            <span><b>Dias:</b> ${p.dias}</span>
-            <span><b>Pessoas:</b> ${p.pessoas}</span>
-            <span><b>Dias trabalhados:</b> ${p.diasTrab}</span>
-          </div>
-          <div class="pbar" style="margin-top:6px"><i style="width:${p.pct}%"></i></div>
-          <div style="margin-top:8px">
-            <h3 style="font-size:13px; color:var(--muted); margin-bottom:6px">Materiais</h3>
-            <ul style="margin-left:18px; display:grid; gap:4px">${mats.map(m=>`<li>${m}</li>`).join('')}</ul>
+            <div class="pbar" style="margin-top:6px"><i style="width:${p.pct}%"></i></div>
+            <div class="subtabs" style="display:flex; gap:8px; border-bottom:1px solid var(--card-border); margin-top:10px">
+              <button class="subtab active" data-tab="pdDesc" style="background:transparent;border:1px solid var(--card-border);border-bottom:0;padding:8px 12px;border-top-left-radius:10px;border-top-right-radius:10px;cursor:pointer;color:var(--text)">Descrição</button>
+              <button class="subtab" data-tab="pdNotes" style="background:transparent;border:1px solid var(--card-border);border-bottom:0;padding:8px 12px;border-top-left-radius:10px;border-top-right-radius:10px;cursor:pointer;color:var(--text)">Anotações</button>
+              <button class="subtab" data-tab="pdRDO" style="background:transparent;border:1px solid var(--card-border);border-bottom:0;padding:8px 12px;border-top-left-radius:10px;border-top-right-radius:10px;cursor:pointer;color:var(--text)">RDO's</button>
+              <button class="subtab" data-tab="pdObs" style="background:transparent;border:1px solid var(--card-border);border-bottom:0;padding:8px 12px;border-top-left-radius:10px;border-top-right-radius:10px;cursor:pointer;color:var(--text)">Observações</button>
+              <button class="subtab" data-tab="pdEditForm" style="background:transparent;border:1px solid var(--card-border);border-bottom:0;padding:8px 12px;border-top-left-radius:10px;border-top-right-radius:10px;cursor:pointer;color:var(--text)">Editar</button>
+            </div>
+            <div class="subtab-panel active" id="pdDesc" style="padding-top:10px"><p>${p.desc}</p></div>
+            <div class="subtab-panel" id="pdNotes" style="display:none;padding-top:10px"><textarea style="width:100%; min-height:120px; background:#0f131a; border:1px solid var(--card-border); border-radius:10px; color:var(--text); padding:10px" placeholder="Anotações do projeto..."></textarea></div>
+            <div class="subtab-panel" id="pdRDO" style="display:none;padding-top:10px"><ul id="pdRDOList" style="display:grid; gap:6px; margin-left:18px">${rdos.map(r=>`<li>${r}</li>`).join('') || '<li>Nenhum RDO registrado.</li>'}</ul></div>
+            <div class="subtab-panel" id="pdObs" style="display:none;padding-top:10px"><textarea style="width:100%; min-height:120px; background:#0f131a; border:1px solid var(--card-border); border-radius:10px; color:var(--text); padding:10px" placeholder="Observações gerais..."></textarea></div>
+            <div class="subtab-panel" id="pdEditForm" style="display:none;padding-top:10px"></div>
           </div>`;
-        qs('#projEdit')?.addEventListener('click', ()=> UI.editProject(p));
-        qs('#projDel')?.addEventListener('click', ()=> UI.deleteProject(p));
+
+        // Construção do form de edição
+        const form = document.createElement('form');
+        form.id = 'editProjectForm';
+        form.className = 'edit-form';
+        form.autocomplete = 'off';
+        const fields = ['id','name','desc','prazo','dias','pessoas','diasTrab','pct'];
+        fields.forEach(f=>{
+          const wrap = document.createElement('div');
+          wrap.className = 'field' + (f === 'desc' ? ' full' : '');
+          const label = document.createElement('label');
+          label.textContent = f;
+          const inp = document.createElement('input');
+          inp.name = f;
+          inp.autocomplete = 'off';
+          if (f === 'desc') { inp.type = 'text'; }
+          else if (f === 'prazo') { inp.type = 'date'; }
+          else if (['dias','pessoas','diasTrab','pct'].includes(f)) { inp.type = 'number'; }
+          else { inp.type = 'text'; }
+          inp.value = p[f] ?? '';
+          wrap.appendChild(label);
+          wrap.appendChild(inp);
+          form.appendChild(wrap);
+        });
+        const actions = document.createElement('div');
+        actions.className = 'actions';
+        const btnSave = document.createElement('button');
+        btnSave.type = 'submit';
+        btnSave.className = 'btn btn-primary';
+        btnSave.textContent = 'Salvar';
+        const btnDel = document.createElement('button');
+        btnDel.type = 'button';
+        btnDel.className = 'btn';
+        btnDel.textContent = 'Excluir';
+        actions.appendChild(btnSave);
+        actions.appendChild(btnDel);
+        form.appendChild(actions);
+        const editWrap = qs('#pdEditForm', els.projDetailsInline);
+        editWrap?.appendChild(form);
+
+        form.addEventListener('submit', ev=>{
+          ev.preventDefault();
+          const fd = new FormData(form);
+          const updated = {};
+          fields.forEach(f=>{ if(fd.has(f)) updated[f] = fd.get(f); });
+          UI.updateProject(p, updated);
+        });
+        btnDel.addEventListener('click', ()=> UI.deleteProject(p));
+
+        const detail = els.projDetailsInline.querySelector('.project-detail');
+        detail?.addEventListener('click', ev=>{
+          const btn = ev.target.closest('.subtab');
+          if(!btn) return;
+          const tab = btn.dataset.tab;
+          qsa('.subtab', detail).forEach(b=>b.classList.remove('active'));
+          qsa('.subtab-panel', detail).forEach(pn=>{ pn.classList.remove('active'); pn.style.display='none'; });
+          btn.classList.add('active');
+          const panel = detail.querySelector('#'+tab);
+          if(panel){ panel.classList.add('active'); panel.style.display=''; }
+        });
       },
     };
   // ===== Helpers do Modo TV (fora do UI!) =====
@@ -829,6 +953,11 @@
     els.tabAdmin?.addEventListener('click', ()=> els.adminMenu?.classList.toggle('open'));
     els.btnAdminCreateTicket?.addEventListener('click', ()=>{
       UI.showCreateTicket();
+      els.adminMenu?.classList.remove('open');
+      els.sidebar?.classList.remove('open');
+    });
+    els.btnAdminChanges?.addEventListener('click', ()=>{
+      UI.showAdminChanges();
       els.adminMenu?.classList.remove('open');
       els.sidebar?.classList.remove('open');
     });

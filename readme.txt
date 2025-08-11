@@ -11,7 +11,7 @@ Estrutura de arquivos
 - assets/js/templates.js: marcações HTML para login e dashboard.
 - assets/js/app.js: lógica principal da aplicação (login, dashboard, modo TV, etc.).
 
-Chamados criados pela interface recebem um ID único automaticamente e
+Chamados criados pela interface podem ter o ID definido manualmente e
 armazenam a data de prazo (`dueDate`). A porcentagem de prazo exibida
 representa quanto do prazo já foi consumido, calculada
 dinamicamente com base na data atual e na data limite.
@@ -25,3 +25,5 @@ Execute `npm start` para iniciar um servidor HTTP simples que também expõe uma
 Endpoints:
 - `GET /api/db` — retorna o conteúdo atual de `db.json`.
 - `PATCH /api/db` — mescla os dados enviados e persiste no `db.json`.
+- `GET /api/logs` — retorna o histórico de alterações.
+- `POST /api/logs` — adiciona uma entrada de log.

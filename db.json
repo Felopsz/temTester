@@ -179,6 +179,10 @@
     "PR-2005": ["Dataset intents L2", "NLP model v0.9", "Playbook fallback"],
     "PR-2006": ["Contrato parceiro", "Guia branding", "Endpoint /partners"]
   },
+  "rdosByProject": {
+    "PR-2001": ["RDO 08/06 - planejamento", "RDO 08/07 - kickoff"],
+    "PR-2003": ["RDO 08/08 - revisão de métricas"]
+  },
   "rdosByTicket": {
     "CH-1021": ["RDO 08/06 - inspeção inicial", "RDO 08/07 - ajuste de parâmetros"],
     "CH-1023": ["RDO 08/07 - troca de ONU", "RDO 08/08 - testes finais"]

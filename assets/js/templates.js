@@ -150,6 +150,12 @@ const tpl = {
             <h2>Novo chamado</h2>
             <form class="edit-form" id="createTicketForm"></form>
           </section>
+          <!-- ADMIN: alterações -->
+          <section class="section" id="sectionAdminChanges" style="display:none">
+            <h2>Alterações</h2>
+            <input type="date" id="logFilterDate" style="max-width:200px" />
+            <ul id="logsList" style="display:grid; gap:6px; margin-top:8px"></ul>
+          </section>
         </main>
       </div>`
 };

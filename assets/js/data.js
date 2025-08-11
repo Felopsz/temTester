@@ -36,6 +36,7 @@ const DB = {
     tickets: [],
     projects: [],
     materialsByProject: {},
+    rdosByProject: {},
     rdosByTicket: {},
     historyByTicket: {},
     users: {},
@@ -58,6 +59,7 @@ const DB = {
       .map(([id, p]) => ({ id, ...p }))
       .sort((a, b) => parseDateLocal(a.prazo) - parseDateLocal(b.prazo));
     this.state.materialsByProject = data.materialsByProject || {};
+    this.state.rdosByProject = data.rdosByProject || {};
     this.state.rdosByTicket = data.rdosByTicket || {};
     this.state.users = data.users || {};
     this.state.historyByTicket = {};
@@ -73,9 +75,11 @@ const DB = {
     return `CH-${String(next).padStart(4, '0')}`;
   },
   async addTicket(t){
-    let id = t.id;
-    if (!id || this.state.tickets.some(x => x.id === id)) {
+    let id = (t.id || '').trim();
+    if (!id) {
       id = this.genTicketId();
+    } else if (this.state.tickets.some(x => x.id === id)) {
+      throw new Error('Defina um ID único para o chamado.');
     }
     const data = { ...t };
     delete data.id;
@@ -94,6 +98,7 @@ const DB = {
         headers:{'Content-Type':'application/json'},
         body: JSON.stringify({tickets:{[id]: data}})
       });
+      await this.log('addTicket', {id});
     }catch(e){
       console.warn('Não foi possível persistir ticket', e);
     }
@@ -109,9 +114,42 @@ const DB = {
         headers:{'Content-Type':'application/json'},
         body: JSON.stringify({tickets:{[id]: copy}})
       });
+      await this.log('updateTicket', {id});
     }catch(e){
       console.warn('Não foi possível persistir ticket', e);
     }
+  },
+  async updateProject(id, data){
+    if (!id) return;
+    const copy = { ...data };
+    delete copy.id;
+    try{
+      await fetch('/api/db', {
+        method:'PATCH',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({projects:{[id]: copy}})
+      });
+      await this.log('updateProject', {id});
+    }catch(e){
+      console.warn('Não foi possível persistir projeto', e);
+    }
+  }
+};
+
+DB.log = async function(action, payload){
+  try{
+    await fetch('/api/logs', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        ts: new Date().toISOString(),
+        user: CURRENT_USER,
+        action,
+        payload
+      })
+    });
+  }catch(e){
+    console.warn('Não foi possível registrar log', e);
   }
 };
 
