@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Telemix — Versão estática</title>
+  <!-- CSS externos -->
+  <link rel="stylesheet" href="./assets/css/variables.css">
+  <link rel="stylesheet" href="./assets/css/base.css">
+  <link rel="stylesheet" href="./assets/css/layout.css">
+  <link rel="stylesheet" href="./assets/css/login.css">
+  <link rel="stylesheet" href="./assets/css/dashboard.css">
+</head>
+<body>
+  <div class="glow" aria-hidden="true"></div>
+
+  <!-- VISUALIZAÇÃO: LOGIN -->
+  <section id="static-login" aria-label="Login">
+    <main class="card">
+      <div class="top-bar"><button type="button" class="back-btn">← Voltar</button></div>
+      <header class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <div class="brand-text">
+          <div class="title">Telemix</div>
+          <p class="subtitle">Acesse sua conta para continuar</p>
+        </div>
+      </header>
+      <section class="actions">
+        <button class="btn btn-primary">Login</button>
+        <button class="btn">Criar conta</button>
+      </section>
+      <div class="divider"></div>
+      <form>
+        <div class="field">
+          <label class="label" for="user">Usuário</label>
+          <input class="input" id="user" name="user" placeholder="ex.: admin" autocomplete="username" />
+        </div>
+        <div class="field">
+          <label class="label" for="pass">Senha</label>
+          <input class="input" id="pass" name="pass" type="password" placeholder="••••" autocomplete="current-password" />
+          <small class="label">Dica de teste: admin / 1234 ou filipe / 1234</small>
+        </div>
+        <button class="continue" type="button">Continuar</button>
+      </form>
+    </main>
+  </section>
+
+  <!-- VISUALIZAÇÃO: DASHBOARD -->
+  <section id="static-dashboard" aria-label="Dashboard">
+    <div class="app">
+      <aside class="sidebar panel">
+        <div class="logo-row"><div class="logo"></div><strong>Telemix</strong></div>
+        <nav class="nav">
+          <button class="navbtn">Visão geral</button>
+          <button class="navbtn">Chamados</button>
+          <button class="navbtn">Relatórios</button>
+          <button class="navbtn">Projetos</button>
+          <button class="navbtn">Admin</button>
+          <div class="admin-subnav">
+            <button class="navbtn">Criar chamado</button>
+            <button class="navbtn">Chamados arquivados</button>
+            <button class="navbtn">Chamados finalizados</button>
+            <button class="navbtn">Criar projeto</button>
+            <button class="navbtn">Projetos arquivados</button>
+            <button class="navbtn">Projetos finalizados</button>
+          </div>
+          <button class="navbtn">Configurações</button>
+        </nav>
+      </aside>
+
+      <header class="top panel">
+        <div class="brand-inline">
+          <button class="hamburger">☰</button>
+          <span class="pill">Dashboard</span>
+          <span class="greet" style="margin-left:8px;color:#cbd5e1;font-size:12px">Olá, admin</span>
+          <span class="clock" style="margin-left:10px;color:#9aa0a6;font-size:12px">00:00</span>
+        </div>
+        <div class="top-actions">
+          <button class="tv-mode-btn" title="Modo TV">📺</button>
+          <button class="logout">Sair</button>
+        </div>
+      </header>
+
+      <main class="content panel">
+        <section class="section tickets">
+          <h2>Chamados</h2>
+          <div class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>ID do chamado</th>
+                  <th>Data de criação</th>
+                  <th>Ponto de encontro</th>
+                  <th>Dupla</th>
+                  <th>% de conclusão</th>
+                  <th>% de prazo</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>CH-0001</td>
+                  <td>2024-01-01</td>
+                  <td>Base</td>
+                  <td>Equipe A</td>
+                  <td>50%</td>
+                  <td>60%</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+    </div>
+  </section>
+</body>
+</html>
