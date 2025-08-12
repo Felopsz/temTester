@@ -103,16 +103,44 @@
     return new Date(str);
   }
 
-  // Calcula % de prazo consumido com base em createdAt e dueDate
-  function computePrazoPct(createdAt, dueDate, now = new Date()){
-    const end = parseDateLocal(dueDate);
-    if (isNaN(end)) return 0;
-    let start = parseDateLocal(createdAt);
-    if (isNaN(start)) start = now;
-    const total = end - start;
-    if (total <= 0) return 0;
-    const elapsed = now - start;
-    return Math.max(0, Math.round((elapsed / total) * 100));
+  // === Datas robustas ===
+  function parseDateSmart(v){
+    if (!v) return null;
+    if (v instanceof Date) return v;
+    if (typeof v === 'number') return new Date(v);
+
+    const s = String(v).trim();
+
+    const iso = s.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})(?:[ T].*)?$/);
+    if (iso){
+      const y = +iso[1], m = +iso[2]-1, d = +iso[3];
+      return new Date(y, m, d);
+    }
+
+    const br = s.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})$/);
+    if (br){
+      const d = +br[1], m = +br[2]-1, y = +br[3];
+      return new Date(y, m, d);
+    }
+
+    const dt = new Date(s);
+    return isNaN(dt.getTime()) ? null : dt;
+  }
+
+  // progresso de prazo (0..∞)
+  function computeDeadlinePct(startDate, endDate, now = new Date()){
+    const a = parseDateSmart(startDate);
+    const b = parseDateSmart(endDate);
+    if (!a || !b) return 0;
+
+    const total = b.getTime() - a.getTime();
+    if (total <= 0){
+      return now > b ? 200 : 0;
+    }
+
+    const elapsed = now.getTime() - a.getTime();
+    const pct = (elapsed / total) * 100;
+    return Math.max(0, pct);
   }
 
   // Controla classes do <body> conforme a página
@@ -259,7 +287,7 @@
       _renderOverview(){
         const t = this._selected || DB.state.tickets[0];
         if (!t) return;
-        const p = computePrazoPct(t.createdAt, t.dueDate);
+        const p = computeDeadlinePct(t.createdAt, t.dueDate);
         this.renderSLAChart(t.concl, Math.min(p,100), 'chartSLA');
       },
 
@@ -303,9 +331,9 @@
           })
           .forEach(t => {
           const tr = document.createElement('tr');
-          const prazoPct = computePrazoPct(t.createdAt, t.dueDate);
-          const overdue = parseDateLocal(t.dueDate) < new Date();
-          const prazoClass = overdue ? 'overdue' : '';
+          const pctPrazo = computeDeadlinePct(t.createdAt, t.dueDate);
+          const pctPrazoCapped = Math.min(100, Math.round(pctPrazo));
+          const overdue = pctPrazo > 100 ? 'overdue' : '';
           tr.innerHTML = `
             <td data-label="ID do chamado"><button class="linklike" data-id="${t.id}">${t.id}</button></td>
             <td data-label="Data de criação">${fmtDate(t.createdAt)}</td>
@@ -319,9 +347,9 @@
               </div>
             </td>
             <td data-label="% de prazo">
-              <div class="prog ${prazoClass}">
-                <div class="nums"><span>Prazo: <b>${prazoPct}%</b></span></div>
-                <div class="progress"><i style="width:${Math.min(prazoPct,100)}%"></i></div>
+              <div class="prog ${overdue}">
+                <div class="nums"><span>Prazo: <b>${Math.round(pctPrazo)}%</b></span></div>
+                <div class="progress ${overdue}"><i style="width:${pctPrazoCapped}%"></i></div>
               </div>
             </td>
           `;
@@ -383,9 +411,9 @@
         els.archivedTicketsBody.innerHTML='';
         DB.state.archivedTickets.forEach(t=>{
           const tr=document.createElement('tr');
-          const prazoPct=computePrazoPct(t.createdAt,t.dueDate);
-          const overdue=parseDateLocal(t.dueDate)<new Date();
-          const prazoClass=overdue?'overdue':'';
+          const pctPrazo=computeDeadlinePct(t.createdAt,t.dueDate);
+          const pctPrazoCapped=Math.min(100,Math.round(pctPrazo));
+          const overdue=pctPrazo>100?'overdue':'';
           tr.innerHTML=`
             <td data-label="ID do chamado">${t.id}</td>
             <td data-label="Data de criação">${fmtDate(t.createdAt)}</td>
@@ -395,7 +423,7 @@
               <div class="prog"><div class="nums"><span>Concl.: <b>${t.concl}%</b></span></div><div class="progress"><i style="width:${t.concl}%"></i></div></div>
             </td>
             <td data-label="% de prazo">
-              <div class="prog ${prazoClass}"><div class="nums"><span>Prazo: <b>${prazoPct}%</b></span></div><div class="progress"><i style="width:${Math.min(prazoPct,100)}%"></i></div></div>
+              <div class="prog ${overdue}"><div class="nums"><span>Prazo: <b>${Math.round(pctPrazo)}%</b></span></div><div class="progress ${overdue}"><i style="width:${pctPrazoCapped}%"></i></div></div>
             </td>
             <td class="actions-cell"><button class="restore btn btn-outline btn-sm" data-id="${t.id}">Restaurar</button> <button class="delete btn btn-danger btn-sm" data-id="${t.id}">Excluir</button></td>
           `;
@@ -416,9 +444,9 @@
         els.finishedTicketsBody.innerHTML='';
         DB.state.finishedTickets.forEach(t=>{
           const tr=document.createElement('tr');
-          const prazoPct=computePrazoPct(t.createdAt,t.dueDate);
-          const overdue=parseDateLocal(t.dueDate)<new Date();
-          const prazoClass=overdue?'overdue':'';
+          const pctPrazo=computeDeadlinePct(t.createdAt,t.dueDate);
+          const pctPrazoCapped=Math.min(100,Math.round(pctPrazo));
+          const overdue=pctPrazo>100?'overdue':'';
           tr.innerHTML=`
             <td data-label="ID do chamado">${t.id}</td>
             <td data-label="Data de criação">${fmtDate(t.createdAt)}</td>
@@ -428,7 +456,7 @@
               <div class="prog"><div class="nums"><span>Concl.: <b>${t.concl}%</b></span></div><div class="progress"><i style="width:${t.concl}%"></i></div></div>
             </td>
             <td data-label="% de prazo">
-              <div class="prog ${prazoClass}"><div class="nums"><span>Prazo: <b>${prazoPct}%</b></span></div><div class="progress"><i style="width:${Math.min(prazoPct,100)}%"></i></div></div>
+              <div class="prog ${overdue}"><div class="nums"><span>Prazo: <b>${Math.round(pctPrazo)}%</b></span></div><div class="progress ${overdue}"><i style="width:${pctPrazoCapped}%"></i></div></div>
             </td>
             <td class="actions-cell"><button class="restore btn btn-outline btn-sm" data-id="${t.id}">Restaurar</button> <button class="delete btn btn-danger btn-sm" data-id="${t.id}">Excluir</button></td>
           `;
@@ -746,7 +774,7 @@
         this._selected = t;
         if(this._selectedRow){ this._selectedRow.classList.remove('selected'); }
         if(rowEl){ rowEl.classList.add('selected'); this._selectedRow = rowEl; }
-        const p = computePrazoPct(t.createdAt, t.dueDate);
+        const p = computeDeadlinePct(t.createdAt, t.dueDate);
         this.renderSLAChart(t.concl, Math.min(p,100));
       },
 
@@ -754,12 +782,17 @@
         this.selectTicket(t, rowEl);
         this.setActiveTab('tickets');
 
+        const pctPrazo = computeDeadlinePct(t.createdAt, t.dueDate);
+        const overdue = pctPrazo > 100;
+        const dueObj = parseDateSmart(t.dueDate);
+
         if (els.tdTitle) els.tdTitle.textContent = t.id;
-        if (els.tdPct) els.tdPct.textContent = `${t.concl}%`;
+        if (els.tdPct) {
+          els.tdPct.textContent = `${Math.round(pctPrazo)}%`;
+          els.tdPct.classList.toggle('overdue', overdue);
+        }
         if (els.tdMeta) {
-          const prazoPct = computePrazoPct(t.createdAt, t.dueDate);
-          const overdue = parseDateLocal(t.dueDate) < new Date();
-          const maybeDue = t.dueDate ? `<span><b>Prazo final:</b> ${parseDateLocal(t.dueDate).toLocaleDateString('pt-BR')}</span>` : '';
+          const maybeDue = dueObj ? `<span><b>Prazo final:</b> ${dueObj.toLocaleDateString('pt-BR')}</span>` : '';
           els.tdMeta.innerHTML = `
             <span><b>Data:</b> ${fmtDate(t.createdAt)}</span>
             <span><b>Aberto por:</b> ${t.solicitante}</span>
@@ -767,14 +800,25 @@
             <span><b>Ponto de encontro:</b> ${t.meetPoint}</span>
             <span><b>Dupla:</b> ${t.dupla}</span>
             ${maybeDue}
-            <span class="${overdue ? 'overdue' : ''}"><b>Prazo consumido:</b> ${prazoPct}%</span>`;
+            <span class="${overdue ? 'overdue' : ''}"><b>Prazo consumido:</b> ${Math.round(pctPrazo)}%</span>`;
         }
 
         if (els.tdDesc) {
-          els.tdDesc.innerHTML = `
-            <p><b>Resumo:</b> ${t.resumo}</p>
-            <p>${t.descricao}</p>
+          const resumo = `
+            <h4>Resumo</h4>
+            <p>${(t.resumo || '').trim() || '—'}</p>
           `;
+          const descricao = t.descricao ? `
+            <div class="divider"></div>
+            <h4>Descrição</h4>
+            <p>${t.descricao}</p>
+          ` : '';
+          const observ = t.obs ? `
+            <div class="divider"></div>
+            <h4>Observações</h4>
+            <p>${t.obs}</p>
+          ` : '';
+          els.tdDesc.innerHTML = `<div class="td-desc">${resumo}${descricao}${observ}</div>`;
         }
 
         if (els.tdNotes) {

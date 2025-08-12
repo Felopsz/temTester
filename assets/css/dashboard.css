@@ -199,6 +199,37 @@
   display:grid !important; /* grid p/ manter o layout do header/meta/tabs */
 }
 
+/* === Detalhe: Descrição mais legível === */
+#tdDesc{
+  padding-top: 6px;
+}
+
+.td-desc{
+  background: #0b0f16;
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  padding: 12px;
+  display: grid;
+  gap: 10px;
+  white-space: pre-wrap;
+  line-height: 1.45;
+  color: var(--text);
+}
+
+.td-desc h4{
+  margin: 2px 0 4px;
+  font-size: 13px;
+  color: var(--muted);
+  letter-spacing: .2px;
+}
+
+.td-desc p{ margin:0; }
+.td-desc ul, .td-desc ol{ margin-left:18px; display:grid; gap:4px; }
+.td-desc .divider{
+  height:1px; background:var(--card-border);
+  margin:2px 0;
+}
+
 /* ===== Finished Projects page layout ===== */
 /* deixa a página 100% alta e a seção rolar por dentro */
 .finished-projects-page .content{
@@ -245,19 +276,7 @@
   gap: 8px;
 }
 
-/* Botão TV */
-.tv-mode-btn {
-  background: #12161e;
-  border: 1px solid var(--card-border);
-  color: var(--text);
-  padding: 6px 10px;
-  border-radius: 8px;
-  cursor: pointer;
-  margin-right: 8px;
-}
-.tv-mode-btn:hover {
-  border-color: rgba(122,162,255,.45);
-}
+.top-actions .btn + .btn{ margin-left:6px; }
 
 /* Layout em tela cheia (modo TV) */
 body.tv-mode .sidebar {

@@ -62,7 +62,7 @@ const tpl = {
             <span class="clock" id="clock" style="margin-left:10px;color:#9aa0a6;font-size:12px"></span>
           </div>
           <div class="top-actions">
-            <button class="tv-mode-btn" id="btnTV" title="Modo TV">📺</button>
+            <button class="btn btn-outline" id="btnTV" title="Modo TV">TV</button>
             <button class="logout" id="btnLogout">Sair</button>
           </div>
         </header>
