@@ -115,6 +115,34 @@
     return Math.max(0, Math.round((elapsed / total) * 100));
   }
 
+  // Controla classes do <body> conforme a página
+  function setPageState(state){
+    document.body.classList.remove('create-page','create-ticket-page','create-project-page');
+    switch(state){
+      case 'create-ticket':
+        document.body.classList.add('create-page','create-ticket-page');
+        break;
+      case 'create-project':
+        document.body.classList.add('create-page','create-project-page');
+        break;
+      default:
+        // estado normal
+        break;
+    }
+  }
+
+  function hideAllSections(){
+    [
+      'sectionTickets','sectionCharts','sectionProjects',
+      'sectionCreateTicket','sectionCreateProject',
+      'sectionArchivedTickets','sectionFinishedTickets',
+      'sectionArchivedProjects','sectionFinishedProjects'
+    ].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = 'none';
+    });
+  }
+
   // ========== DASHBOARD ==========
   function initDashboard(){
     const els = {
@@ -190,12 +218,8 @@
     const UI = {
       setActiveTab(which){
         [els.tabOverview, els.tabTickets, els.tabProjects].forEach(b=> b?.classList.remove('active'));
-        hide('#sectionCreateTicket');
-        hide('#sectionCreateProject');
-        hide('#sectionArchivedTickets');
-        hide('#sectionFinishedTickets');
-        hide('#sectionArchivedProjects');
-        hide('#sectionFinishedProjects');
+        hideAllSections();
+        setPageState('default');
 
         document.body.classList.remove('projects-page','tickets-page');
         if (which === 'projects') document.body.classList.add('projects-page');
@@ -208,8 +232,8 @@
         if (which === 'overview') {
           els.tabOverview?.classList.add('active');
           if (els.sectionPill) els.sectionPill.textContent = 'Dashboard';
-          show('#sectionTickets'); 
-          show('#sectionCharts'); 
+          show('#sectionTickets');
+          show('#sectionCharts');
           show('#sectionProjects');
 
           clearTicketDetail(els);
@@ -219,17 +243,13 @@
         if (which === 'tickets') {
           els.tabTickets?.classList.add('active');
           if (els.sectionPill) els.sectionPill.textContent = 'Chamados';
-          show('#sectionTickets'); 
-          hide('#sectionCharts'); 
-          hide('#sectionProjects');
+          show('#sectionTickets');
           return;
         }
 
         if (which === 'projects') {
           els.tabProjects?.classList.add('active');
           if (els.sectionPill) els.sectionPill.textContent = 'Projetos';
-          hide('#sectionTickets'); 
-          hide('#sectionCharts'); 
           show('#sectionProjects');
           clearTicketDetail(els);
           return;
@@ -471,11 +491,9 @@
       },
 
       showCreateTicket(){
-        hide('#sectionTickets');
-        hide('#sectionCharts');
-        hide('#sectionProjects');
-        hide('#sectionCreateProject');
+        hideAllSections();
         show('#sectionCreateTicket');
+        setPageState('create-ticket');
         document.body.classList.remove('tickets-page','projects-page');
         if (els.sectionPill) els.sectionPill.textContent = 'Criar chamado';
 
@@ -596,11 +614,9 @@
       },
 
       showCreateProject(){
-        hide('#sectionTickets');
-        hide('#sectionCharts');
-        hide('#sectionProjects');
-        hide('#sectionCreateTicket');
+        hideAllSections();
         show('#sectionCreateProject');
+        setPageState('create-project');
         document.body.classList.remove('tickets-page','projects-page');
         if (els.sectionPill) els.sectionPill.textContent = 'Criar projeto';
 
@@ -696,32 +712,36 @@
 
 
       showArchivedTickets(){
-        hide('#sectionTickets'); hide('#sectionCharts'); hide('#sectionProjects'); hide('#sectionCreateTicket'); hide('#sectionCreateProject'); hide('#sectionFinishedTickets'); hide('#sectionArchivedProjects'); hide('#sectionFinishedProjects');
+        hideAllSections();
         show('#sectionArchivedTickets');
+        setPageState('default');
         document.body.classList.add('tickets-page');
         document.body.classList.remove('projects-page');
         if (els.sectionPill) els.sectionPill.textContent = 'Chamados arquivados';
         this.renderArchivedTickets();
       },
       showFinishedTickets(){
-        hide('#sectionTickets'); hide('#sectionCharts'); hide('#sectionProjects'); hide('#sectionCreateTicket'); hide('#sectionCreateProject'); hide('#sectionArchivedTickets'); hide('#sectionArchivedProjects'); hide('#sectionFinishedProjects');
+        hideAllSections();
         show('#sectionFinishedTickets');
+        setPageState('default');
         document.body.classList.add('tickets-page');
         document.body.classList.remove('projects-page');
         if (els.sectionPill) els.sectionPill.textContent = 'Chamados finalizados';
         this.renderFinishedTickets();
       },
       showArchivedProjects(){
-        hide('#sectionTickets'); hide('#sectionCharts'); hide('#sectionProjects'); hide('#sectionCreateTicket'); hide('#sectionCreateProject'); hide('#sectionArchivedTickets'); hide('#sectionFinishedTickets'); hide('#sectionFinishedProjects');
+        hideAllSections();
         show('#sectionArchivedProjects');
+        setPageState('default');
         document.body.classList.add('projects-page');
         document.body.classList.remove('tickets-page');
         if (els.sectionPill) els.sectionPill.textContent = 'Projetos arquivados';
         this.renderArchivedProjects();
       },
       showFinishedProjects(){
-        hide('#sectionTickets'); hide('#sectionCharts'); hide('#sectionProjects'); hide('#sectionCreateTicket'); hide('#sectionCreateProject'); hide('#sectionArchivedTickets'); hide('#sectionFinishedTickets'); hide('#sectionArchivedProjects');
+        hideAllSections();
         show('#sectionFinishedProjects');
+        setPageState('default');
         document.body.classList.add('projects-page');
         document.body.classList.remove('tickets-page');
         if (els.sectionPill) els.sectionPill.textContent = 'Projetos finalizados';
@@ -1273,7 +1293,10 @@
     els.tabOverview?.addEventListener('click', ()=> UI.setActiveTab('overview'));
     els.tabTickets?.addEventListener('click', ()=> UI.setActiveTab('tickets'));
     els.tabProjects?.addEventListener('click', ()=> UI.setActiveTab('projects'));
-    els.tabAdmin?.addEventListener('click', ()=> els.adminMenu?.classList.toggle('open'));
+    els.tabAdmin?.addEventListener('click', ()=> {
+      setPageState('default');
+      els.adminMenu?.classList.toggle('open');
+    });
     els.btnAdminCreateTicket?.addEventListener('click', ()=>{
       UI.showCreateTicket();
       els.adminMenu?.classList.remove('open');

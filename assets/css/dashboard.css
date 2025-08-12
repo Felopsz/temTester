@@ -527,3 +527,32 @@ body.tv-mode .section{
   border: 2px solid rgba(255,255,255,.06);
 }
 
+/* ====== CREATE PAGES: faz a seção preencher o painel ====== */
+.create-page .content{
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* as seções de criação ocupam todo o espaço disponível */
+.create-page #sectionCreateTicket,
+.create-page #sectionCreateProject{
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* o formulário rola por dentro do bloco #10141c */
+.create-page #sectionCreateTicket .edit-form,
+.create-page #sectionCreateProject .edit-form{
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+/* garante que filhos possam rolar (você já tem, mas reforço) */
+.content.panel{ min-height: 0; }
+
