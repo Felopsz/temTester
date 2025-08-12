@@ -154,18 +154,18 @@
       .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
   }
 
-  function ensureObsArray(ticket){
-    if (!ticket.observacoes) {
-      ticket.observacoes = ticket.obs || [];
-      delete ticket.obs;
+  function ensureObsArray(item){
+    if (!item.observacoes || item.observacoes.length === 0) {
+      if (item.obs) item.observacoes = item.obs;
     }
-    if (typeof ticket.observacoes === 'string'){
-      ticket.observacoes = [{ id: Date.now(), texto: ticket.observacoes, autor: 'sistema', criadoEm: new Date() }];
+    delete item.obs;
+    if (typeof item.observacoes === 'string'){
+      item.observacoes = [{ id: Date.now(), texto: item.observacoes, autor: 'sistema', criadoEm: new Date() }];
     }
-    if (!Array.isArray(ticket.observacoes)){
-      ticket.observacoes = [ticket.observacoes];
+    if (!Array.isArray(item.observacoes)){
+      item.observacoes = [item.observacoes];
     }
-    ticket.observacoes = ticket.observacoes.map((o,i) => ({
+    item.observacoes = item.observacoes.map((o,i) => ({
       id: o?.id ?? (Date.now()+i),
       texto: String(o?.texto ?? o?.text ?? o ?? ''),
       autor: o?.autor ?? o?.author ?? '—',
@@ -205,15 +205,15 @@
     });
   }
 
-  function renderObservacoes(ticket){
-    ensureObsArray(ticket);
+  function renderObsList(owner, panelId, saveFn){
+    ensureObsArray(owner);
     const admin = isAdminUser();
-    const panel = document.getElementById('tdObs');
+    const panel = document.getElementById(panelId);
     if (!panel) return;
 
-    const items = ticket.observacoes;
+    const items = owner.observacoes;
     const listHtml = items.length ? `
-      <ul id="tdObsList" style="display:grid; gap:8px; margin-left:18px">
+      <ul id="${panelId}List" style="display:grid; gap:8px; margin-left:18px">
         ${items.map(o => `
           <li data-id="${o.id}" style="display:flex; gap:8px; align-items:flex-start">
             <div style="flex:1">
@@ -223,21 +223,21 @@
             ${admin ? `
               <div class="actions-cell">
                 <button class="btn btn-outline btn-sm" data-act="edit">Editar</button>
-                <button class="btn btn-danger  btn-sm" data-act="del">Excluir</button>
+                <button class="btn btn-danger btn-sm" data-act="del">Excluir</button>
               </div>
             ` : ``}
           </li>
         `).join('')}
       </ul>
     ` : `
-      <div id="tdObsList"></div>
+      <div id="${panelId}List"></div>
     `;
 
     const formHtml = admin ? `
-      <div id="tdObsForm" style="margin-top:10px">
-        <textarea id="tdObsInput" style="width:100%; min-height:100px; background:#0f131a; border:1px solid var(--card-border); border-radius:10px; color:var(--text); padding:10px" placeholder="Adicionar observação..."></textarea>
+      <div id="${panelId}Form" style="margin-top:10px">
+        <textarea id="${panelId}Input" style="width:100%; min-height:100px; background:#0f131a; border:1px solid var(--card-border); border-radius:10px; color:var(--text); padding:10px" placeholder="Adicionar observação..."></textarea>
         <div class="actions" style="margin-top:6px">
-          <button type="button" class="btn btn-primary btn-sm" id="tdObsAdd">Adicionar</button>
+          <button type="button" class="btn btn-primary btn-sm" id="${panelId}Add">Adicionar</button>
         </div>
       </div>
     ` : ``;
@@ -245,34 +245,36 @@
     panel.innerHTML = listHtml + formHtml;
 
     if (admin){
-      const addBtn = document.getElementById('tdObsAdd');
+      const addBtn = document.getElementById(`${panelId}Add`);
       addBtn?.addEventListener('click', () => {
-        const ta = document.getElementById('tdObsInput');
+        const ta = document.getElementById(`${panelId}Input`);
         const txt = (ta?.value || '').trim();
         if (!txt) return;
-        ticket.observacoes.push({
+        owner.observacoes.push({
           id: Date.now(),
           texto: txt,
           autor: CURRENT_USER || 'admin',
           criadoEm: new Date()
         });
-        renderObservacoes(ticket);
+        saveFn(owner);
+        renderObsList(owner, panelId, saveFn);
       });
 
-      document.getElementById('tdObs')?.addEventListener('click', (e) => {
+      panel.addEventListener('click', (e) => {
         const btn = e.target.closest('button[data-act]');
         if (!btn) return;
         const li = btn.closest('li[data-id]');
         if (!li) return;
         const id = li.getAttribute('data-id');
-        const idx = ticket.observacoes.findIndex(o => String(o.id) === String(id));
+        const idx = owner.observacoes.findIndex(o => String(o.id) === String(id));
         if (idx < 0) return;
 
         if (btn.dataset.act === 'del'){
-          ticket.observacoes.splice(idx, 1);
-          renderObservacoes(ticket);
+          owner.observacoes.splice(idx, 1);
+          saveFn(owner);
+          renderObsList(owner, panelId, saveFn);
         } else if (btn.dataset.act === 'edit'){
-          const o = ticket.observacoes[idx];
+          const o = owner.observacoes[idx];
           li.innerHTML = `
             <div style="flex:1; display:grid; gap:6px">
               <textarea class="obs-edit" style="width:100%; min-height:100px; background:#0f131a; border:1px solid var(--card-border); border-radius:10px; color:var(--text); padding:10px">${esc(o.texto)}</textarea>
@@ -283,15 +285,24 @@
               <button class="btn btn-primary btn-sm" data-act="save">Salvar</button>
             </div>
           `;
-          li.querySelector('[data-act="cancel"]').addEventListener('click', () => renderObservacoes(ticket));
+          li.querySelector('[data-act="cancel"]').addEventListener('click', () => renderObsList(owner, panelId, saveFn));
           li.querySelector('[data-act="save"]').addEventListener('click', () => {
             const nv = li.querySelector('.obs-edit').value.trim();
-            ticket.observacoes[idx].texto = nv;
-            renderObservacoes(ticket);
+            owner.observacoes[idx].texto = nv;
+            saveFn(owner);
+            renderObsList(owner, panelId, saveFn);
           });
         }
       }, { once: true });
     }
+  }
+
+  function renderObservacoes(ticket){
+    renderObsList(ticket, 'tdObs', t => DB.updateTicket(t.id, {observacoes: t.observacoes, obs: null}));
+  }
+
+  function renderProjectObservacoes(proj){
+    renderObsList(proj, 'pdObs', p => DB.updateProject(p.id, {observacoes: p.observacoes, obs: null}));
   }
 
   // ========== DASHBOARD ==========
@@ -1179,12 +1190,6 @@
         UI.openProjectDetailInline(p);
       },
 
-      async saveProjectObs(p, text){
-        if (CURRENT_ROLE !== 'admin') return;
-        await DB.setProjectObs(p.id, text, CURRENT_USER);
-        UI.openProjectDetailInline(p);
-      },
-
       async deleteProject(p){
         if(!confirm('Excluir projeto?')) return;
         await DB.finishProject(p);
@@ -1218,8 +1223,12 @@
       renderSLAChart(concl, prazo, targetId='chartSLA'){
         const svg = targetId ? qs('#'+targetId) : els.chartSLA;
         if (!svg) return;
-        const c = Math.max(0, Math.min(100, concl||0));
-        const p = Math.max(0, Math.min(100, prazo||0));
+        const cRaw = Math.max(0, concl || 0);
+        const pRaw = Math.max(0, prazo || 0);
+        const c = Math.min(100, cRaw);
+        const p = Math.min(100, pRaw);
+        const cText = Math.round(cRaw);
+        const pText = Math.round(pRaw);
         svg.innerHTML = `
           <defs>
             <linearGradient id="gradC" x1="0" x2="0" y1="0" y2="1">
@@ -1232,8 +1241,8 @@
           <rect x="2" y="24" width="96" height="8" rx="2" fill="#0f131a" stroke="${cssVar('--card-border')}"/>
           <rect x="2" y="24" width="${c*0.96}" height="8" rx="2" fill="url(#gradC)" />
           <g fill="#9aa0a6" font-size="3.2">
-            <text x="2" y="8">Prazo consumido: ${p}%</text>
-            <text x="2" y="36">Conclusão: ${c}%</text>
+            <text x="2" y="8">Prazo consumido: ${pText}%</text>
+            <text x="2" y="36">Conclusão: ${cText}%</text>
           </g>`;
       },
 
@@ -1300,20 +1309,7 @@
           nBtn._bound = true;
         }
 
-        const obsPanel = qs('#pdObs', els.projDetailsInline);
-        const obs = p.obs || {};
-        if (CURRENT_ROLE === 'admin') {
-          obsPanel.innerHTML = `<form id="pdObsForm"><textarea style="width:100%; min-height:120px; background:#0f131a; border:1px solid var(--card-border); border-radius:10px; color:var(--text); padding:10px" placeholder="Observações gerais..." autocomplete="off">${obs.text||''}</textarea><div class="actions" style="margin-top:6px"><button type="submit" class="btn btn-primary">Salvar</button></div></form>`;
-          const oform = qs('#pdObsForm', obsPanel);
-          oform.addEventListener('submit', ev=>{
-            ev.preventDefault();
-            const text = qs('textarea', oform).value.trim();
-            UI.saveProjectObs(p, text);
-          });
-        } else {
-          const content = obs.text ? `<p>${obs.text}${obs.user ? `<br><small>por ${obs.user}</small>` : ''}</p>` : '<p>Nenhuma observação.</p>';
-          obsPanel.innerHTML = content;
-        }
+        renderProjectObservacoes(p);
 
         // Construção do form de edição
         const form = document.createElement('form');
