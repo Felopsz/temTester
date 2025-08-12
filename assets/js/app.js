@@ -221,7 +221,7 @@
         hideAllSections();
         setPageState('default');
 
-        document.body.classList.remove('projects-page','tickets-page');
+        document.body.classList.remove('projects-page','tickets-page','finished-projects-page');
         if (which === 'projects') document.body.classList.add('projects-page');
         if (which === 'tickets')  document.body.classList.add('tickets-page');
 
@@ -397,7 +397,7 @@
             <td data-label="% de prazo">
               <div class="prog ${prazoClass}"><div class="nums"><span>Prazo: <b>${prazoPct}%</b></span></div><div class="progress"><i style="width:${Math.min(prazoPct,100)}%"></i></div></div>
             </td>
-            <td data-label="Ações"><button class="restore" data-id="${t.id}">Desarquivar</button> <button class="delete" data-id="${t.id}">Excluir</button></td>
+            <td class="actions-cell"><button class="restore btn btn-outline btn-sm" data-id="${t.id}">Restaurar</button> <button class="delete btn btn-danger btn-sm" data-id="${t.id}">Excluir</button></td>
           `;
           els.archivedTicketsBody.appendChild(tr);
         });
@@ -430,7 +430,7 @@
             <td data-label="% de prazo">
               <div class="prog ${prazoClass}"><div class="nums"><span>Prazo: <b>${prazoPct}%</b></span></div><div class="progress"><i style="width:${Math.min(prazoPct,100)}%"></i></div></div>
             </td>
-            <td data-label="Ações"><button class="restore" data-id="${t.id}">Desarquivar</button> <button class="delete" data-id="${t.id}">Excluir</button></td>
+            <td class="actions-cell"><button class="restore btn btn-outline btn-sm" data-id="${t.id}">Restaurar</button> <button class="delete btn btn-danger btn-sm" data-id="${t.id}">Excluir</button></td>
           `;
           els.finishedTicketsBody.appendChild(tr);
         });
@@ -453,7 +453,7 @@
             <td data-label="ID">${p.id}</td>
             <td data-label="Nome">${p.name}</td>
             <td data-label="Prazo">${parseDateLocal(p.prazo).toLocaleDateString('pt-BR')}</td>
-            <td data-label="Ações"><button class="restore" data-id="${p.id}">Desarquivar</button> <button class="delete" data-id="${p.id}">Excluir</button></td>
+            <td class="actions-cell"><button class="restore btn btn-outline btn-sm" data-id="${p.id}">Restaurar</button> <button class="delete btn btn-danger btn-sm" data-id="${p.id}">Excluir</button></td>
           `;
           els.archivedProjectsBody.appendChild(tr);
         });
@@ -476,7 +476,7 @@
             <td data-label="ID">${p.id}</td>
             <td data-label="Nome">${p.name}</td>
             <td data-label="Prazo">${parseDateLocal(p.prazo).toLocaleDateString('pt-BR')}</td>
-            <td data-label="Ações"><button class="restore" data-id="${p.id}">Desarquivar</button> <button class="delete" data-id="${p.id}">Excluir</button></td>
+            <td class="actions-cell"><button class="restore btn btn-outline btn-sm" data-id="${p.id}">Restaurar</button> <button class="delete btn btn-danger btn-sm" data-id="${p.id}">Excluir</button></td>
           `;
           els.finishedProjectsBody.appendChild(tr);
         });
@@ -494,7 +494,7 @@
         hideAllSections();
         show('#sectionCreateTicket');
         setPageState('create-ticket');
-        document.body.classList.remove('tickets-page','projects-page');
+        document.body.classList.remove('tickets-page','projects-page','finished-projects-page');
         if (els.sectionPill) els.sectionPill.textContent = 'Criar chamado';
 
         // garante que o painel entre em cena com scroll e foco
@@ -617,7 +617,7 @@
         hideAllSections();
         show('#sectionCreateProject');
         setPageState('create-project');
-        document.body.classList.remove('tickets-page','projects-page');
+        document.body.classList.remove('tickets-page','projects-page','finished-projects-page');
         if (els.sectionPill) els.sectionPill.textContent = 'Criar projeto';
 
         requestAnimationFrame(()=>{
@@ -716,7 +716,7 @@
         show('#sectionArchivedTickets');
         setPageState('default');
         document.body.classList.add('tickets-page');
-        document.body.classList.remove('projects-page');
+        document.body.classList.remove('projects-page','finished-projects-page');
         if (els.sectionPill) els.sectionPill.textContent = 'Chamados arquivados';
         this.renderArchivedTickets();
       },
@@ -725,7 +725,7 @@
         show('#sectionFinishedTickets');
         setPageState('default');
         document.body.classList.add('tickets-page');
-        document.body.classList.remove('projects-page');
+        document.body.classList.remove('projects-page','finished-projects-page');
         if (els.sectionPill) els.sectionPill.textContent = 'Chamados finalizados';
         this.renderFinishedTickets();
       },
@@ -734,18 +734,9 @@
         show('#sectionArchivedProjects');
         setPageState('default');
         document.body.classList.add('projects-page');
-        document.body.classList.remove('tickets-page');
+        document.body.classList.remove('tickets-page','finished-projects-page');
         if (els.sectionPill) els.sectionPill.textContent = 'Projetos arquivados';
         this.renderArchivedProjects();
-      },
-      showFinishedProjects(){
-        hideAllSections();
-        show('#sectionFinishedProjects');
-        setPageState('default');
-        document.body.classList.add('projects-page');
-        document.body.classList.remove('tickets-page');
-        if (els.sectionPill) els.sectionPill.textContent = 'Projetos finalizados';
-        this.renderFinishedProjects();
       },
 
       // *** ainda dentro de UI ***
@@ -879,23 +870,27 @@
 
           const actions = document.createElement('div');
           actions.className = 'actions';
+          const btnCancel = document.createElement('button');
+          btnCancel.type = 'button';
+          btnCancel.className = 'btn btn-outline btn-sm';
+          btnCancel.id = 'btnCancelEdit';
+          btnCancel.textContent = 'Cancelar';
           const btnSave = document.createElement('button');
           btnSave.type = 'submit';
-          btnSave.className = 'btn btn-primary';
-          btnSave.textContent = 'Salvar';
+          btnSave.className = 'btn btn-primary btn-sm';
+          btnSave.id = 'btnSaveEdit';
+          btnSave.textContent = 'Salvar alterações';
           const btnArchive = document.createElement('button');
           btnArchive.type = 'button';
-          btnArchive.className = 'btn';
+          btnArchive.className = 'btn btn-ghost btn-sm';
           btnArchive.id = 'btnArchiveTicket';
           btnArchive.textContent = 'Arquivar';
           const btnDel = document.createElement('button');
           btnDel.type = 'button';
-          btnDel.className = 'del-btn btn';
+          btnDel.className = 'btn btn-danger btn-sm';
           btnDel.id = 'btnDelTicket';
           btnDel.textContent = 'Excluir';
-          actions.appendChild(btnSave);
-          actions.appendChild(btnArchive);
-          actions.appendChild(btnDel);
+          actions.append(btnCancel, btnSave, btnArchive, btnDel);
           form.appendChild(actions);
           els.tdEditForm.appendChild(form);
 
@@ -908,6 +903,7 @@
             updated.concl = Number(updated.concl || 0);
             UI.editTicket(t, updated);
           });
+          btnCancel.addEventListener('click', ()=> UI.openTicketDetail(t));
           btnArchive.addEventListener('click', ()=> UI.archiveTicket(t));
           btnDel.addEventListener('click', ()=> UI.deleteTicket(t));
         }
@@ -1323,7 +1319,13 @@
       els.sidebar?.classList.remove('open');
     });
     els.btnAdminFinishedProjects?.addEventListener('click', ()=>{
-      UI.showFinishedProjects();
+      hideAllSections();
+      if (els.sectionFinishedProjects) els.sectionFinishedProjects.style.display = 'block';
+      setPageState('default');
+      document.body.classList.remove('tickets-page','projects-page','create-page','create-ticket-page','create-project-page','finished-projects-page');
+      document.body.classList.add('finished-projects-page');
+      if (els.sectionPill) els.sectionPill.textContent = 'Projetos finalizados';
+      UI.renderFinishedProjects();
       els.adminMenu?.classList.remove('open');
       els.sidebar?.classList.remove('open');
     });
