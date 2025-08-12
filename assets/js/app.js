@@ -143,6 +143,10 @@
     return Math.max(0, pct);
   }
 
+  function cssVar(name){
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  }
+
   // ===== Observações: utils =====
   function isAdminUser(){
     return CURRENT_ROLE === 'admin';
@@ -211,6 +215,8 @@
     const panel = document.getElementById(panelId);
     if (!panel) return;
 
+    const wasActive = panel.classList.contains('active');
+
     const items = owner.observacoes;
     const listHtml = items.length ? `
       <ul id="${panelId}List" style="display:grid; gap:8px; margin-left:18px">
@@ -243,10 +249,12 @@
     ` : ``;
 
     panel.innerHTML = listHtml + formHtml;
+    if (wasActive) { panel.classList.add('active'); panel.style.display = ''; }
 
     if (admin){
       const addBtn = document.getElementById(`${panelId}Add`);
-      addBtn?.addEventListener('click', () => {
+      addBtn?.addEventListener('click', (e) => {
+        e.stopPropagation();
         const ta = document.getElementById(`${panelId}Input`);
         const txt = (ta?.value || '').trim();
         if (!txt) return;
@@ -261,6 +269,7 @@
       });
 
       panel.addEventListener('click', (e) => {
+        e.stopPropagation();
         const btn = e.target.closest('button[data-act]');
         if (!btn) return;
         const li = btn.closest('li[data-id]');
@@ -285,8 +294,9 @@
               <button class="btn btn-primary btn-sm" data-act="save">Salvar</button>
             </div>
           `;
-          li.querySelector('[data-act="cancel"]').addEventListener('click', () => renderObsList(owner, panelId, saveFn));
-          li.querySelector('[data-act="save"]').addEventListener('click', () => {
+          li.querySelector('[data-act="cancel"]').addEventListener('click', (ev) => { ev.stopPropagation(); renderObsList(owner, panelId, saveFn); });
+          li.querySelector('[data-act="save"]').addEventListener('click', (ev) => {
+            ev.stopPropagation();
             const nv = li.querySelector('.obs-edit').value.trim();
             owner.observacoes[idx].texto = nv;
             saveFn(owner);
@@ -303,6 +313,61 @@
 
   function renderProjectObservacoes(proj){
     renderObsList(proj, 'pdObs', p => DB.updateProject(p.id, {observacoes: p.observacoes, obs: null}));
+  }
+
+  function renderNotesList(owner, panelId, addFn, delFn){
+    const panel = document.getElementById(panelId);
+    if (!panel) return;
+    const notes = owner.notes || (owner.notes = []);
+    const admin = isAdminUser();
+    const wasActive = panel.classList.contains('active');
+
+    panel.innerHTML = `
+      <ul id="${panelId}List" style="display:grid; gap:6px; margin-left:18px">
+        ${notes.map((n,i)=>`
+          <li data-idx="${i}" style="display:flex; gap:8px; align-items:flex-start">
+            <div style="flex:1"><b>${esc(n.user)}:</b> ${esc(n.text)}</div>
+            ${(admin || n.user === CURRENT_USER) ? `<button class="btn btn-danger btn-sm" data-act="del">Excluir</button>` : ''}
+          </li>
+        `).join('') || '<li>Nenhuma anotação.</li>'}
+      </ul>
+      <div id="${panelId}Form" style="margin-top:8px">
+        <textarea id="${panelId}Input" style="width:100%; min-height:120px; background:#0f131a; border:1px solid var(--card-border); border-radius:10px; color:var(--text); padding:10px" placeholder="Anotações..."></textarea>
+        <div class="actions" style="margin-top:6px">
+          <button type="button" class="btn btn-primary btn-sm" id="${panelId}Add">Adicionar</button>
+        </div>
+      </div>`;
+
+    if (wasActive) { panel.classList.add('active'); panel.style.display=''; }
+
+    panel.querySelector(`#${panelId}Add`)?.addEventListener('click', e=>{
+      e.stopPropagation();
+      const ta = panel.querySelector(`#${panelId}Input`);
+      const text = ta.value.trim();
+      if (!text) return;
+      addFn(owner, text);
+      ta.value='';
+      renderNotesList(owner, panelId, addFn, delFn);
+    });
+
+    panel.addEventListener('click', e=>{
+      e.stopPropagation();
+      const btn = e.target.closest('button[data-act="del"]');
+      if (!btn) return;
+      const li = btn.closest('li[data-idx]');
+      if (!li) return;
+      const idx = Number(li.dataset.idx);
+      delFn(owner, idx);
+      renderNotesList(owner, panelId, addFn, delFn);
+    }, { once: true });
+  }
+
+  function renderTicketNotes(t){
+    renderNotesList(t, 'tdNotes', (owner, text) => UI.addTicketNote(owner, text), (owner, idx) => UI.deleteTicketNote(owner, idx));
+  }
+
+  function renderProjectNotes(p){
+    renderNotesList(p, 'pdNotes', (owner, text) => UI.addProjectNote(owner, text), (owner, idx) => UI.deleteProjectNote(owner, idx));
   }
 
   // ========== DASHBOARD ==========
@@ -972,23 +1037,7 @@
 
         renderObservacoes(t);
 
-        if (els.tdNotes) {
-          const listEl = qs('#tdNotesList', els.tdNotes);
-          const notes = t.notes || [];
-          if (listEl) listEl.innerHTML = notes.map(n=>`<li><b>${n.user}:</b> ${n.text}</li>`).join('') || '<li>Nenhuma anotação.</li>';
-          const form = qs('#tdNoteForm', els.tdNotes);
-          const btn = qs('#tdAddNoteBtn', form);
-          if (btn && !btn._bound) {
-            btn.addEventListener('click', ()=>{
-              const ta = qs('textarea', form);
-              const text = ta.value.trim();
-              if (!text) return;
-              UI.addTicketNote(t, text);
-              ta.value = '';
-            });
-            btn._bound = true;
-          }
-        }
+        renderTicketNotes(t);
 
 
         const list = DB.state.rdosByTicket[t.id] || [];
@@ -1125,7 +1174,9 @@
 
       async addTicketNote(t, text){
         await DB.addTicketNote(t.id, text, CURRENT_USER);
-        UI.openTicketDetail(t);
+      },
+      async deleteTicketNote(t, idx){
+        await DB.deleteTicketNote(t.id, idx);
       },
 
       async editTicket(t, updated){
@@ -1187,7 +1238,9 @@
 
       async addProjectNote(p, text){
         await DB.addProjectNote(p.id, text, CURRENT_USER);
-        UI.openProjectDetailInline(p);
+      },
+      async deleteProjectNote(p, idx){
+        await DB.deleteProjectNote(p.id, idx);
       },
 
       async deleteProject(p){
@@ -1292,22 +1345,7 @@
           <div class="subtab-panel" id="pdEditForm" style="display:none;padding-top:10px"></div>
         </div>`;
 
-        const notesPanel = qs('#pdNotes', els.projDetailsInline);
-        const nList = qs('#pdNotesList', notesPanel);
-        const notes = p.notes || [];
-        if (nList) nList.innerHTML = notes.map(n=>`<li><b>${n.user}:</b> ${n.text}</li>`).join('') || '<li>Nenhuma anotação.</li>';
-        const nForm = qs('#pdNoteForm', notesPanel);
-        const nBtn = qs('#pdAddNoteBtn', nForm);
-        if (nBtn && !nBtn._bound){
-          nBtn.addEventListener('click', ()=>{
-            const ta = qs('textarea', nForm);
-            const text = ta.value.trim();
-            if (!text) return;
-            UI.addProjectNote(p, text);
-            ta.value = '';
-          });
-          nBtn._bound = true;
-        }
+        renderProjectNotes(p);
 
         renderProjectObservacoes(p);
 

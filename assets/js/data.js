@@ -208,6 +208,20 @@ const DB = {
       console.warn('Não foi possível salvar anotação', e);
     }
   },
+  async deleteTicketNote(id, idx){
+    const t = this.state.tickets.find(x=>x.id===id);
+    if(!t || !t.notes) return;
+    t.notes.splice(idx,1);
+    try{
+      await fetch('/api/db', {
+        method:'PATCH',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({tickets:{[id]: {notes: t.notes}}})
+      });
+    }catch(e){
+      console.warn('Não foi possível excluir anotação', e);
+    }
+  },
   async addProjectNote(id, text, user){
     const p = this.state.projects.find(x=>x.id===id);
     if(!p) return;
@@ -221,6 +235,20 @@ const DB = {
       });
     }catch(e){
       console.warn('Não foi possível salvar anotação', e);
+    }
+  },
+  async deleteProjectNote(id, idx){
+    const p = this.state.projects.find(x=>x.id===id);
+    if(!p || !p.notes) return;
+    p.notes.splice(idx,1);
+    try{
+      await fetch('/api/db', {
+        method:'PATCH',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({projects:{[id]: {notes: p.notes}}})
+      });
+    }catch(e){
+      console.warn('Não foi possível excluir anotação', e);
     }
   },
   async archiveTicket(t){
