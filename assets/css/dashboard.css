@@ -198,6 +198,72 @@
 .tickets-page #sectionTickets .ticket-detail{
   display:grid !important; /* grid p/ manter o layout do header/meta/tabs */
 }
+
+/* === Detalhe: Descrição mais legível === */
+#tdDesc{
+  padding-top: 6px;
+}
+
+.td-desc{
+  background: #0b0f16;
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  padding: 12px;
+  display: grid;
+  gap: 10px;
+  white-space: pre-wrap;
+  line-height: 1.45;
+  color: var(--text);
+}
+
+.td-desc h4{
+  margin: 2px 0 4px;
+  font-size: 13px;
+  color: var(--muted);
+  letter-spacing: .2px;
+}
+
+.td-desc p{ margin:0; }
+.td-desc ul, .td-desc ol{ margin-left:18px; display:grid; gap:4px; }
+.td-desc .divider{
+  height:1px; background:var(--card-border);
+  margin:2px 0;
+}
+
+/* ===== Finished Projects page layout ===== */
+/* deixa a página 100% alta e a seção rolar por dentro */
+.finished-projects-page .content{
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* a seção ocupa o resto do painel e não corta conteúdo */
+.finished-projects-page #sectionFinishedProjects{
+  display: flex;      /* vira um container vertical */
+  flex: 1;            /* preenche a altura */
+  min-height: 0;      /* permite overflow interno */
+  overflow: hidden;   /* quem rola é a .table-wrap */
+  grid-column: 1 / -1;
+}
+
+/* tabela rola sem “cortar” nada */
+.finished-projects-page #sectionFinishedProjects .table-wrap{
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  max-height: none;   /* remove teto que podia cortar */
+}
+
+/* em mobile, manter rolagem horizontal se precisar */
+@media (max-width: 600px){
+  .finished-projects-page #sectionFinishedProjects .table{
+    min-width: 600px;
+  }
+}
+
 /* Topo da dashboard */
 .top {
   display: flex;
@@ -210,19 +276,7 @@
   gap: 8px;
 }
 
-/* Botão TV */
-.tv-mode-btn {
-  background: #12161e;
-  border: 1px solid var(--card-border);
-  color: var(--text);
-  padding: 6px 10px;
-  border-radius: 8px;
-  cursor: pointer;
-  margin-right: 8px;
-}
-.tv-mode-btn:hover {
-  border-color: rgba(122,162,255,.45);
-}
+.top-actions .btn + .btn{ margin-left:6px; }
 
 /* Layout em tela cheia (modo TV) */
 body.tv-mode .sidebar {
@@ -342,17 +396,29 @@ body.tv-mode .section{
   overflow-x: hidden;  /* mata qualquer transbordo horizontal */
 }
 
-/* Botões de edição e exclusão */
-.edit-btn, .del-btn{
-  background:#12161e;
-  border:1px solid var(--card-border);
-  color:var(--text);
-  padding:4px 8px;
-  border-radius:8px;
-  cursor:pointer;
-  font-size:12px;
+/* === Botões utilitários (harmonizados) === */
+.btn{ background:#141820; color:var(--text); border:1px solid var(--card-border); padding: 10px 12px; border-radius:10px; cursor:pointer; transition: transform var(--transition), border-color var(--transition), background var(--transition), opacity var(--transition); font-size:13px; line-height:1; }
+.btn:hover{ transform: translateY(-1px); border-color: rgba(122,162,255,.45); }
+.btn:disabled{ opacity:.6; cursor:not-allowed; }
+
+.btn-primary{ background: linear-gradient(180deg, var(--brand), var(--brand-strong)); border-color: transparent; color:#fff; font-weight:600; }
+.btn-outline{ background:#12161e; border:1px solid var(--card-border); color:var(--text); }
+.btn-ghost{ background: transparent; border:1px dashed rgba(255,255,255,.18); color:#cbd5e1; }
+.btn-danger{ background:#161218; border:1px solid rgba(255,69,58,.45); color:#fecaca; }
+.btn-danger:hover{ border-color: rgba(255,69,58,.7); }
+
+.btn-sm{ padding:6px 10px; font-size:12px; border-radius:8px; }
+
+.actions-cell{
+  display:flex;
+  align-items:center;
+  gap: 6px;
+  flex-wrap: wrap;
 }
-.del-btn:hover{ border-color:rgba(255,69,58,.6); }
+
+/* compatibilidade com nomes antigos */
+.edit-btn{ composes: btn btn-outline btn-sm; }
+.del-btn{ composes: btn btn-danger btn-sm; }
 
 /* Formulário de edição de chamado */
 .edit-form{ display:grid; gap:8px; max-width:420px; }
@@ -366,15 +432,6 @@ body.tv-mode .section{
 }
 .edit-form textarea{ min-height:80px; resize:vertical; }
 .edit-form .actions{ display:flex; gap:8px; margin-top:8px; }
-.save-btn{
-  background:linear-gradient(180deg,var(--brand),var(--brand-strong));
-  border:0;
-  color:#fff;
-  padding:6px 12px;
-  border-radius:8px;
-  cursor:pointer;
-  font-size:12px;
-}
 
 /* Ajuste de larguras no modo TV */
 .tv-mode .tickets{ grid-column: span 5; }
@@ -526,4 +583,33 @@ body.tv-mode .section{
   border-radius: 10px;
   border: 2px solid rgba(255,255,255,.06);
 }
+
+/* ====== CREATE PAGES: faz a seção preencher o painel ====== */
+.create-page .content{
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* as seções de criação ocupam todo o espaço disponível */
+.create-page #sectionCreateTicket,
+.create-page #sectionCreateProject{
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* o formulário rola por dentro do bloco #10141c */
+.create-page #sectionCreateTicket .edit-form,
+.create-page #sectionCreateProject .edit-form{
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+/* garante que filhos possam rolar (você já tem, mas reforço) */
+.content.panel{ min-height: 0; }
 

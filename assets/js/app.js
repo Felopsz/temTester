@@ -1,17 +1,33 @@
 (function(){
+  let adminMenuOpen = false;
+
+  function detectMobile(){
+    const params = new URLSearchParams(location.search);
+    const force = params.get('mobile') ?? localStorage.getItem('forceMobile');
+    if (force === '1') return true;
+    if (force === '0') return false;
+    const isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+    const isNarrow = window.matchMedia('(max-width: 900px)').matches;
+    return isTouch && isNarrow;
+  }
+  let IS_MOBILE = detectMobile();
+  document.body.classList.toggle('is-mobile', IS_MOBILE);
+
+  function renderShell(){
+    const loginView = qs('#view-login');
+    const dashView = qs('#view-dashboard');
+    if (loginView) loginView.innerHTML = IS_MOBILE && tpl.loginMobile ? tpl.loginMobile() : tpl.login();
+    if (dashView){
+      dashView.style.display = 'none';
+      dashView.innerHTML = IS_MOBILE && tpl.dashboardMobile ? tpl.dashboardMobile() : tpl.dashboard();
+    }
+    document.body.classList.toggle('is-mobile', IS_MOBILE);
+  }
+
   // App principal: fluxo de login, carregamento de dados e dashboard
   // ========== BOOT ==========
   document.addEventListener('DOMContentLoaded', () => {
-    const loginView = qs('#view-login');
-    const dashView = qs('#view-dashboard');
-
-    // Sempre injeta os templates para garantir a árvore esperada
-    if (loginView) loginView.innerHTML = tpl.login();
-    if (dashView) {
-      dashView.style.display = 'none';
-      dashView.innerHTML = tpl.dashboard(); // <— força injeção
-    }
-
+    renderShell();
     bindLogin();
   });
 
@@ -103,16 +119,281 @@
     return new Date(str);
   }
 
-  // Calcula % de prazo consumido com base em createdAt e dueDate
-  function computePrazoPct(createdAt, dueDate, now = new Date()){
-    const end = parseDateLocal(dueDate);
-    if (isNaN(end)) return 0;
-    let start = parseDateLocal(createdAt);
-    if (isNaN(start)) start = now;
-    const total = end - start;
-    if (total <= 0) return 0;
-    const elapsed = now - start;
-    return Math.max(0, Math.round((elapsed / total) * 100));
+  // === Datas robustas ===
+  function parseDateSmart(v){
+    if (!v) return null;
+    if (v instanceof Date) return v;
+    if (typeof v === 'number') return new Date(v);
+
+    const s = String(v).trim();
+
+    const iso = s.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})(?:[ T].*)?$/);
+    if (iso){
+      const y = +iso[1], m = +iso[2]-1, d = +iso[3];
+      return new Date(y, m, d);
+    }
+
+    const br = s.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})$/);
+    if (br){
+      const d = +br[1], m = +br[2]-1, y = +br[3];
+      return new Date(y, m, d);
+    }
+
+    const dt = new Date(s);
+    return isNaN(dt.getTime()) ? null : dt;
+  }
+
+  // progresso de prazo (0..∞)
+  function computeDeadlinePct(startDate, endDate, now = new Date()){
+    const a = parseDateSmart(startDate);
+    const b = parseDateSmart(endDate);
+    if (!a || !b) return 0;
+
+    const total = b.getTime() - a.getTime();
+    if (total <= 0){
+      return now > b ? 200 : 0;
+    }
+
+    const elapsed = now.getTime() - a.getTime();
+    const pct = (elapsed / total) * 100;
+    return Math.max(0, pct);
+  }
+
+  function cssVar(name){
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  }
+
+  // ===== Observações: utils =====
+  function isAdminUser(){
+    return CURRENT_ROLE === 'admin';
+  }
+
+  function esc(s){
+    return String(s ?? '')
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+
+  function ensureObsArray(item){
+    if (!item.observacoes || item.observacoes.length === 0) {
+      if (item.obs) item.observacoes = item.obs;
+    }
+    delete item.obs;
+    if (typeof item.observacoes === 'string'){
+      item.observacoes = [{ id: Date.now(), texto: item.observacoes, autor: 'sistema', criadoEm: new Date() }];
+    }
+    if (!Array.isArray(item.observacoes)){
+      item.observacoes = [item.observacoes];
+    }
+    item.observacoes = item.observacoes.map((o,i) => ({
+      id: o?.id ?? (Date.now()+i),
+      texto: String(o?.texto ?? o?.text ?? o ?? ''),
+      autor: o?.autor ?? o?.author ?? '—',
+      criadoEm: o?.criadoEm ?? o?.createdAt ?? new Date(),
+    }));
+  }
+
+  function findTicketById(id){
+    return window.DATA?.tickets?.find(t => String(t.id) === String(id)) || null;
+  }
+
+  // Controla classes do <body> conforme a página
+  function setPageState(state){
+    document.body.classList.remove('create-page','create-ticket-page','create-project-page');
+    switch(state){
+      case 'create-ticket':
+        document.body.classList.add('create-page','create-ticket-page');
+        break;
+      case 'create-project':
+        document.body.classList.add('create-page','create-project-page');
+        break;
+      default:
+        // estado normal
+        break;
+    }
+  }
+
+  function hideAllSections(){
+    [
+      'sectionTickets','sectionCharts','sectionProjects',
+      'sectionCreateTicket','sectionCreateProject',
+      'sectionArchivedTickets','sectionFinishedTickets',
+      'sectionArchivedProjects','sectionFinishedProjects'
+    ].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = 'none';
+    });
+  }
+
+  function renderObsList(owner, panelId, saveFn){
+    ensureObsArray(owner);
+    const admin = isAdminUser();
+    const panel = document.getElementById(panelId);
+    if (!panel) return;
+
+    const wasActive = panel.classList.contains('active');
+
+    const items = owner.observacoes;
+    const listHtml = items.length ? `
+      <ul id="${panelId}List" style="display:grid; gap:8px; margin-left:18px">
+        ${items.map(o => `
+          <li data-id="${o.id}" style="display:flex; gap:8px; align-items:flex-start">
+            <div style="flex:1">
+              <div style="font-size:13px; color:#cbd5e1">${esc(o.texto)}</div>
+              <small style="color:#9aa0a6">${esc(o.autor)} • ${new Date(o.criadoEm).toLocaleDateString()}</small>
+            </div>
+            ${admin ? `
+              <div class="actions-cell">
+                <button class="btn btn-outline btn-sm" data-act="edit">Editar</button>
+                <button class="btn btn-danger btn-sm" data-act="del">Excluir</button>
+              </div>
+            ` : ``}
+          </li>
+        `).join('')}
+      </ul>
+    ` : `
+      <div id="${panelId}List"></div>
+    `;
+
+    const formHtml = admin ? `
+      <div id="${panelId}Form" style="margin-top:10px">
+        <textarea id="${panelId}Input" style="width:100%; min-height:100px; background:#0f131a; border:1px solid var(--card-border); border-radius:10px; color:var(--text); padding:10px" placeholder="Adicionar observação..."></textarea>
+        <div class="actions" style="margin-top:6px">
+          <button type="button" class="btn btn-primary btn-sm" id="${panelId}Add">Adicionar</button>
+        </div>
+      </div>
+    ` : ``;
+
+    panel.innerHTML = listHtml + formHtml;
+    if (wasActive) { panel.classList.add('active'); panel.style.display = ''; }
+
+    if (admin){
+      const addBtn = document.getElementById(`${panelId}Add`);
+      addBtn?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const ta = document.getElementById(`${panelId}Input`);
+        const txt = (ta?.value || '').trim();
+        if (!txt) return;
+        owner.observacoes.push({
+          id: Date.now(),
+          texto: txt,
+          autor: CURRENT_USER || 'admin',
+          criadoEm: new Date()
+        });
+        saveFn(owner);
+        renderObsList(owner, panelId, saveFn);
+      });
+
+      panel.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const btn = e.target.closest('button[data-act]');
+        if (!btn) return;
+        const li = btn.closest('li[data-id]');
+        if (!li) return;
+        const id = li.getAttribute('data-id');
+        const idx = owner.observacoes.findIndex(o => String(o.id) === String(id));
+        if (idx < 0) return;
+
+        if (btn.dataset.act === 'del'){
+          owner.observacoes.splice(idx, 1);
+          saveFn(owner);
+          renderObsList(owner, panelId, saveFn);
+        } else if (btn.dataset.act === 'edit'){
+          const o = owner.observacoes[idx];
+          li.innerHTML = `
+            <div style="flex:1; display:grid; gap:6px">
+              <textarea class="obs-edit" style="width:100%; min-height:100px; background:#0f131a; border:1px solid var(--card-border); border-radius:10px; color:var(--text); padding:10px">${esc(o.texto)}</textarea>
+              <small style="color:#9aa0a6">${esc(o.autor)} • ${new Date(o.criadoEm).toLocaleDateString()}</small>
+            </div>
+            <div class="actions-cell">
+              <button class="btn btn-outline btn-sm" data-act="cancel">Cancelar</button>
+              <button class="btn btn-primary btn-sm" data-act="save">Salvar</button>
+            </div>
+          `;
+          li.querySelector('[data-act="cancel"]').addEventListener('click', (ev) => { ev.stopPropagation(); renderObsList(owner, panelId, saveFn); });
+          li.querySelector('[data-act="save"]').addEventListener('click', (ev) => {
+            ev.stopPropagation();
+            const nv = li.querySelector('.obs-edit').value.trim();
+            owner.observacoes[idx].texto = nv;
+            saveFn(owner);
+            renderObsList(owner, panelId, saveFn);
+          });
+        }
+      }, { once: true });
+    }
+  }
+
+  function renderObservacoes(ticket){
+    renderObsList(ticket, 'tdObs', t => DB.updateTicket(t.id, {observacoes: t.observacoes, obs: null}));
+  }
+
+  function renderProjectObservacoes(proj){
+    renderObsList(proj, 'pdObs', p => DB.updateProject(p.id, {observacoes: p.observacoes, obs: null}));
+  }
+
+  function renderNotesList(owner, panelId, addFn, delFn){
+    const panel = document.getElementById(panelId);
+    if (!panel) return;
+    const notes = owner.notes || (owner.notes = []);
+    const admin = isAdminUser();
+    const wasActive = panel.classList.contains('active');
+
+    panel.innerHTML = `
+      <ul id="${panelId}List" style="display:grid; gap:6px; margin-left:18px">
+        ${notes.map((n,i)=>`
+          <li data-idx="${i}" style="display:flex; gap:8px; align-items:flex-start">
+            <div style="flex:1"><b>${esc(n.user)}:</b> ${esc(n.text)}</div>
+            ${(admin || n.user === CURRENT_USER) ? `<button class="btn btn-danger btn-sm" data-act="del">Excluir</button>` : ''}
+          </li>
+        `).join('') || '<li>Nenhuma anotação.</li>'}
+      </ul>
+      <div id="${panelId}Form" style="margin-top:8px">
+        <textarea id="${panelId}Input" style="width:100%; min-height:120px; background:#0f131a; border:1px solid var(--card-border); border-radius:10px; color:var(--text); padding:10px" placeholder="Anotações..."></textarea>
+        <div class="actions" style="margin-top:6px">
+          <button type="button" class="btn btn-primary btn-sm" id="${panelId}Add">Adicionar</button>
+        </div>
+      </div>`;
+
+    if (wasActive) { panel.classList.add('active'); panel.style.display=''; }
+
+    panel.querySelector(`#${panelId}Add`)?.addEventListener('click', e=>{
+      e.stopPropagation();
+      const ta = panel.querySelector(`#${panelId}Input`);
+      const text = ta.value.trim();
+      if (!text) return;
+      addFn(owner, text);
+      ta.value='';
+      renderNotesList(owner, panelId, addFn, delFn);
+    });
+
+    panel.addEventListener('click', e=>{
+      e.stopPropagation();
+      const btn = e.target.closest('button[data-act="del"]');
+      if (!btn) return;
+      const li = btn.closest('li[data-idx]');
+      if (!li) return;
+      const idx = Number(li.dataset.idx);
+      delFn(owner, idx);
+      renderNotesList(owner, panelId, addFn, delFn);
+    }, { once: true });
+  }
+
+  function renderTicketNotes(t){
+    renderNotesList(
+      t,
+      'tdNotes',
+      (owner, text) => DB.addTicketNote(owner.id, text, CURRENT_USER),
+      (owner, idx) => DB.deleteTicketNote(owner.id, idx)
+    );
+  }
+
+  function renderProjectNotes(p){
+    renderNotesList(
+      p,
+      'pdNotes',
+      (owner, text) => DB.addProjectNote(owner.id, text, CURRENT_USER),
+      (owner, idx) => DB.deleteProjectNote(owner.id, idx)
+    );
   }
 
   // ========== DASHBOARD ==========
@@ -163,6 +444,9 @@
       _subtabsBound: false,
     };
 
+    const adminMenu = els.adminMenu;
+    adminMenuOpen = adminMenu?.classList.contains('open') || adminMenuOpen;
+
     // Oculta itens de admin para usuários comuns
     if (CURRENT_ROLE !== 'admin') {
       if (els.tabConfig) els.tabConfig.style.display = 'none';
@@ -190,14 +474,11 @@
     const UI = {
       setActiveTab(which){
         [els.tabOverview, els.tabTickets, els.tabProjects].forEach(b=> b?.classList.remove('active'));
-        hide('#sectionCreateTicket');
-        hide('#sectionCreateProject');
-        hide('#sectionArchivedTickets');
-        hide('#sectionFinishedTickets');
-        hide('#sectionArchivedProjects');
-        hide('#sectionFinishedProjects');
+        hideAllSections();
+        setPageState('default');
+        adminMenu?.classList.toggle('open', adminMenuOpen);
 
-        document.body.classList.remove('projects-page','tickets-page');
+        document.body.classList.remove('projects-page','tickets-page','finished-projects-page');
         if (which === 'projects') document.body.classList.add('projects-page');
         if (which === 'tickets')  document.body.classList.add('tickets-page');
 
@@ -208,8 +489,8 @@
         if (which === 'overview') {
           els.tabOverview?.classList.add('active');
           if (els.sectionPill) els.sectionPill.textContent = 'Dashboard';
-          show('#sectionTickets'); 
-          show('#sectionCharts'); 
+          show('#sectionTickets');
+          show('#sectionCharts');
           show('#sectionProjects');
 
           clearTicketDetail(els);
@@ -219,17 +500,13 @@
         if (which === 'tickets') {
           els.tabTickets?.classList.add('active');
           if (els.sectionPill) els.sectionPill.textContent = 'Chamados';
-          show('#sectionTickets'); 
-          hide('#sectionCharts'); 
-          hide('#sectionProjects');
+          show('#sectionTickets');
           return;
         }
 
         if (which === 'projects') {
           els.tabProjects?.classList.add('active');
           if (els.sectionPill) els.sectionPill.textContent = 'Projetos';
-          hide('#sectionTickets'); 
-          hide('#sectionCharts'); 
           show('#sectionProjects');
           clearTicketDetail(els);
           return;
@@ -237,9 +514,10 @@
       },
 
       _renderOverview(){
+        if (IS_MOBILE) return;
         const t = this._selected || DB.state.tickets[0];
         if (!t) return;
-        const p = computePrazoPct(t.createdAt, t.dueDate);
+        const p = computeDeadlinePct(t.createdAt, t.dueDate);
         this.renderSLAChart(t.concl, Math.min(p,100), 'chartSLA');
       },
 
@@ -283,9 +561,9 @@
           })
           .forEach(t => {
           const tr = document.createElement('tr');
-          const prazoPct = computePrazoPct(t.createdAt, t.dueDate);
-          const overdue = parseDateLocal(t.dueDate) < new Date();
-          const prazoClass = overdue ? 'overdue' : '';
+          const pctPrazo = computeDeadlinePct(t.createdAt, t.dueDate);
+          const pctPrazoCapped = Math.min(100, Math.round(pctPrazo));
+          const overdue = pctPrazo > 100 ? 'overdue' : '';
           tr.innerHTML = `
             <td data-label="ID do chamado"><button class="linklike" data-id="${t.id}">${t.id}</button></td>
             <td data-label="Data de criação">${fmtDate(t.createdAt)}</td>
@@ -299,9 +577,9 @@
               </div>
             </td>
             <td data-label="% de prazo">
-              <div class="prog ${prazoClass}">
-                <div class="nums"><span>Prazo: <b>${prazoPct}%</b></span></div>
-                <div class="progress"><i style="width:${Math.min(prazoPct,100)}%"></i></div>
+              <div class="prog ${overdue}">
+                <div class="nums"><span>Prazo: <b>${Math.round(pctPrazo)}%</b></span></div>
+                <div class="progress ${overdue}"><i style="width:${pctPrazoCapped}%"></i></div>
               </div>
             </td>
           `;
@@ -356,6 +634,13 @@
           el.addEventListener('click', ()=> UI.openProjectDetailInline(p));
         els.projectsCarousel.appendChild(el);
       });
+
+        if (document.body.classList.contains('projects-page') && DB.state.projects.length){
+          UI.openProjectDetailInline(DB.state.projects[0]);
+          document.querySelectorAll('#projectsCarousel .project.selected').forEach(el=>el.classList.remove('selected'));
+          const firstCard = els.projectsCarousel.querySelector('.project');
+          firstCard?.classList.add('selected');
+        }
       },
 
       renderArchivedTickets(){
@@ -363,9 +648,9 @@
         els.archivedTicketsBody.innerHTML='';
         DB.state.archivedTickets.forEach(t=>{
           const tr=document.createElement('tr');
-          const prazoPct=computePrazoPct(t.createdAt,t.dueDate);
-          const overdue=parseDateLocal(t.dueDate)<new Date();
-          const prazoClass=overdue?'overdue':'';
+          const pctPrazo=computeDeadlinePct(t.createdAt,t.dueDate);
+          const pctPrazoCapped=Math.min(100,Math.round(pctPrazo));
+          const overdue=pctPrazo>100?'overdue':'';
           tr.innerHTML=`
             <td data-label="ID do chamado">${t.id}</td>
             <td data-label="Data de criação">${fmtDate(t.createdAt)}</td>
@@ -375,9 +660,9 @@
               <div class="prog"><div class="nums"><span>Concl.: <b>${t.concl}%</b></span></div><div class="progress"><i style="width:${t.concl}%"></i></div></div>
             </td>
             <td data-label="% de prazo">
-              <div class="prog ${prazoClass}"><div class="nums"><span>Prazo: <b>${prazoPct}%</b></span></div><div class="progress"><i style="width:${Math.min(prazoPct,100)}%"></i></div></div>
+              <div class="prog ${overdue}"><div class="nums"><span>Prazo: <b>${Math.round(pctPrazo)}%</b></span></div><div class="progress ${overdue}"><i style="width:${pctPrazoCapped}%"></i></div></div>
             </td>
-            <td data-label="Ações"><button class="restore" data-id="${t.id}">Desarquivar</button> <button class="delete" data-id="${t.id}">Excluir</button></td>
+            <td class="actions-cell"><button class="restore btn btn-outline btn-sm" data-id="${t.id}">Restaurar</button> <button class="delete btn btn-danger btn-sm" data-id="${t.id}">Excluir</button></td>
           `;
           els.archivedTicketsBody.appendChild(tr);
         });
@@ -396,9 +681,9 @@
         els.finishedTicketsBody.innerHTML='';
         DB.state.finishedTickets.forEach(t=>{
           const tr=document.createElement('tr');
-          const prazoPct=computePrazoPct(t.createdAt,t.dueDate);
-          const overdue=parseDateLocal(t.dueDate)<new Date();
-          const prazoClass=overdue?'overdue':'';
+          const pctPrazo=computeDeadlinePct(t.createdAt,t.dueDate);
+          const pctPrazoCapped=Math.min(100,Math.round(pctPrazo));
+          const overdue=pctPrazo>100?'overdue':'';
           tr.innerHTML=`
             <td data-label="ID do chamado">${t.id}</td>
             <td data-label="Data de criação">${fmtDate(t.createdAt)}</td>
@@ -408,9 +693,9 @@
               <div class="prog"><div class="nums"><span>Concl.: <b>${t.concl}%</b></span></div><div class="progress"><i style="width:${t.concl}%"></i></div></div>
             </td>
             <td data-label="% de prazo">
-              <div class="prog ${prazoClass}"><div class="nums"><span>Prazo: <b>${prazoPct}%</b></span></div><div class="progress"><i style="width:${Math.min(prazoPct,100)}%"></i></div></div>
+              <div class="prog ${overdue}"><div class="nums"><span>Prazo: <b>${Math.round(pctPrazo)}%</b></span></div><div class="progress ${overdue}"><i style="width:${pctPrazoCapped}%"></i></div></div>
             </td>
-            <td data-label="Ações"><button class="restore" data-id="${t.id}">Desarquivar</button> <button class="delete" data-id="${t.id}">Excluir</button></td>
+            <td class="actions-cell"><button class="restore btn btn-outline btn-sm" data-id="${t.id}">Restaurar</button> <button class="delete btn btn-danger btn-sm" data-id="${t.id}">Excluir</button></td>
           `;
           els.finishedTicketsBody.appendChild(tr);
         });
@@ -433,7 +718,7 @@
             <td data-label="ID">${p.id}</td>
             <td data-label="Nome">${p.name}</td>
             <td data-label="Prazo">${parseDateLocal(p.prazo).toLocaleDateString('pt-BR')}</td>
-            <td data-label="Ações"><button class="restore" data-id="${p.id}">Desarquivar</button> <button class="delete" data-id="${p.id}">Excluir</button></td>
+            <td class="actions-cell"><button class="restore btn btn-outline btn-sm" data-id="${p.id}">Restaurar</button> <button class="delete btn btn-danger btn-sm" data-id="${p.id}">Excluir</button></td>
           `;
           els.archivedProjectsBody.appendChild(tr);
         });
@@ -456,7 +741,7 @@
             <td data-label="ID">${p.id}</td>
             <td data-label="Nome">${p.name}</td>
             <td data-label="Prazo">${parseDateLocal(p.prazo).toLocaleDateString('pt-BR')}</td>
-            <td data-label="Ações"><button class="restore" data-id="${p.id}">Desarquivar</button> <button class="delete" data-id="${p.id}">Excluir</button></td>
+            <td class="actions-cell"><button class="restore btn btn-outline btn-sm" data-id="${p.id}">Restaurar</button> <button class="delete btn btn-danger btn-sm" data-id="${p.id}">Excluir</button></td>
           `;
           els.finishedProjectsBody.appendChild(tr);
         });
@@ -471,12 +756,10 @@
       },
 
       showCreateTicket(){
-        hide('#sectionTickets');
-        hide('#sectionCharts');
-        hide('#sectionProjects');
-        hide('#sectionCreateProject');
+        hideAllSections();
         show('#sectionCreateTicket');
-        document.body.classList.remove('tickets-page','projects-page');
+        setPageState('create-ticket');
+        document.body.classList.remove('tickets-page','projects-page','finished-projects-page');
         if (els.sectionPill) els.sectionPill.textContent = 'Criar chamado';
 
         // garante que o painel entre em cena com scroll e foco
@@ -577,8 +860,10 @@
               form.reset();
               ui.renderTickets();
               ui.setActiveTab('tickets');
-              els.adminMenu?.classList.remove('open');
-              els.sidebar?.classList.remove('open');
+              adminMenu?.classList.toggle('open', adminMenuOpen);
+              const ft = DB.state.tickets?.[0];
+              const fr = document.querySelector('#ticketsTable tbody tr');
+              if (ft && fr) UI.openTicketDetail(ft, fr);
             }catch(e){
               alert(e.message || 'Erro ao salvar chamado');
             }
@@ -596,12 +881,10 @@
       },
 
       showCreateProject(){
-        hide('#sectionTickets');
-        hide('#sectionCharts');
-        hide('#sectionProjects');
-        hide('#sectionCreateTicket');
+        hideAllSections();
         show('#sectionCreateProject');
-        document.body.classList.remove('tickets-page','projects-page');
+        setPageState('create-project');
+        document.body.classList.remove('tickets-page','projects-page','finished-projects-page');
         if (els.sectionPill) els.sectionPill.textContent = 'Criar projeto';
 
         requestAnimationFrame(()=>{
@@ -679,6 +962,13 @@
               ui.renderProjects();
               ui.updateProjectArrows();
               ui.setActiveTab('projects');
+              const fp = DB.state.projects?.[0];
+              if (fp){
+                UI.openProjectDetailInline(fp);
+                document.querySelectorAll('#projectsCarousel .project.selected').forEach(el=>el.classList.remove('selected'));
+                const firstCard = document.querySelector('#projectsCarousel .project');
+                firstCard?.classList.add('selected');
+              }
             }catch(e){
               alert(e.message || 'Erro ao salvar projeto');
             }
@@ -696,36 +986,31 @@
 
 
       showArchivedTickets(){
-        hide('#sectionTickets'); hide('#sectionCharts'); hide('#sectionProjects'); hide('#sectionCreateTicket'); hide('#sectionCreateProject'); hide('#sectionFinishedTickets'); hide('#sectionArchivedProjects'); hide('#sectionFinishedProjects');
+        hideAllSections();
         show('#sectionArchivedTickets');
+        setPageState('default');
         document.body.classList.add('tickets-page');
-        document.body.classList.remove('projects-page');
+        document.body.classList.remove('projects-page','finished-projects-page');
         if (els.sectionPill) els.sectionPill.textContent = 'Chamados arquivados';
         this.renderArchivedTickets();
       },
       showFinishedTickets(){
-        hide('#sectionTickets'); hide('#sectionCharts'); hide('#sectionProjects'); hide('#sectionCreateTicket'); hide('#sectionCreateProject'); hide('#sectionArchivedTickets'); hide('#sectionArchivedProjects'); hide('#sectionFinishedProjects');
+        hideAllSections();
         show('#sectionFinishedTickets');
+        setPageState('default');
         document.body.classList.add('tickets-page');
-        document.body.classList.remove('projects-page');
+        document.body.classList.remove('projects-page','finished-projects-page');
         if (els.sectionPill) els.sectionPill.textContent = 'Chamados finalizados';
         this.renderFinishedTickets();
       },
       showArchivedProjects(){
-        hide('#sectionTickets'); hide('#sectionCharts'); hide('#sectionProjects'); hide('#sectionCreateTicket'); hide('#sectionCreateProject'); hide('#sectionArchivedTickets'); hide('#sectionFinishedTickets'); hide('#sectionFinishedProjects');
+        hideAllSections();
         show('#sectionArchivedProjects');
+        setPageState('default');
         document.body.classList.add('projects-page');
-        document.body.classList.remove('tickets-page');
+        document.body.classList.remove('tickets-page','finished-projects-page');
         if (els.sectionPill) els.sectionPill.textContent = 'Projetos arquivados';
         this.renderArchivedProjects();
-      },
-      showFinishedProjects(){
-        hide('#sectionTickets'); hide('#sectionCharts'); hide('#sectionProjects'); hide('#sectionCreateTicket'); hide('#sectionCreateProject'); hide('#sectionArchivedTickets'); hide('#sectionFinishedTickets'); hide('#sectionArchivedProjects');
-        show('#sectionFinishedProjects');
-        document.body.classList.add('projects-page');
-        document.body.classList.remove('tickets-page');
-        if (els.sectionPill) els.sectionPill.textContent = 'Projetos finalizados';
-        this.renderFinishedProjects();
       },
 
       // *** ainda dentro de UI ***
@@ -735,20 +1020,25 @@
         this._selected = t;
         if(this._selectedRow){ this._selectedRow.classList.remove('selected'); }
         if(rowEl){ rowEl.classList.add('selected'); this._selectedRow = rowEl; }
-        const p = computePrazoPct(t.createdAt, t.dueDate);
-        this.renderSLAChart(t.concl, Math.min(p,100));
+        const p = computeDeadlinePct(t.createdAt, t.dueDate);
+        if (!IS_MOBILE) this.renderSLAChart(t.concl, Math.min(p,100));
       },
 
       openTicketDetail(t, rowEl){
         this.selectTicket(t, rowEl);
         this.setActiveTab('tickets');
 
+        const pctPrazo = computeDeadlinePct(t.createdAt, t.dueDate);
+        const overdue = pctPrazo > 100;
+        const dueObj = parseDateSmart(t.dueDate);
+
         if (els.tdTitle) els.tdTitle.textContent = t.id;
-        if (els.tdPct) els.tdPct.textContent = `${t.concl}%`;
+        if (els.tdPct) {
+          els.tdPct.textContent = `${Math.round(pctPrazo)}%`;
+          els.tdPct.classList.toggle('overdue', overdue);
+        }
         if (els.tdMeta) {
-          const prazoPct = computePrazoPct(t.createdAt, t.dueDate);
-          const overdue = parseDateLocal(t.dueDate) < new Date();
-          const maybeDue = t.dueDate ? `<span><b>Prazo final:</b> ${parseDateLocal(t.dueDate).toLocaleDateString('pt-BR')}</span>` : '';
+          const maybeDue = dueObj ? `<span><b>Prazo final:</b> ${dueObj.toLocaleDateString('pt-BR')}</span>` : '';
           els.tdMeta.innerHTML = `
             <span><b>Data:</b> ${fmtDate(t.createdAt)}</span>
             <span><b>Aberto por:</b> ${t.solicitante}</span>
@@ -756,49 +1046,26 @@
             <span><b>Ponto de encontro:</b> ${t.meetPoint}</span>
             <span><b>Dupla:</b> ${t.dupla}</span>
             ${maybeDue}
-            <span class="${overdue ? 'overdue' : ''}"><b>Prazo consumido:</b> ${prazoPct}%</span>`;
+            <span class="${overdue ? 'overdue' : ''}"><b>Prazo consumido:</b> ${Math.round(pctPrazo)}%</span>`;
         }
 
         if (els.tdDesc) {
-          els.tdDesc.innerHTML = `
-            <p><b>Resumo:</b> ${t.resumo}</p>
-            <p>${t.descricao}</p>
+          const resumo = `
+            <h4>Resumo</h4>
+            <p>${(t.resumo || '').trim() || '—'}</p>
           `;
+          const descricao = t.descricao ? `
+            <div class="divider"></div>
+            <h4>Descrição</h4>
+            <p>${t.descricao}</p>
+          ` : '';
+          els.tdDesc.innerHTML = `<div class="td-desc">${resumo}${descricao}</div>`;
         }
 
-        if (els.tdNotes) {
-          const listEl = qs('#tdNotesList', els.tdNotes);
-          const notes = t.notes || [];
-          if (listEl) listEl.innerHTML = notes.map(n=>`<li><b>${n.user}:</b> ${n.text}</li>`).join('') || '<li>Nenhuma anotação.</li>';
-          const form = qs('#tdNoteForm', els.tdNotes);
-          const btn = qs('#tdAddNoteBtn', form);
-          if (btn && !btn._bound) {
-            btn.addEventListener('click', ()=>{
-              const ta = qs('textarea', form);
-              const text = ta.value.trim();
-              if (!text) return;
-              UI.addTicketNote(t, text);
-              ta.value = '';
-            });
-            btn._bound = true;
-          }
-        }
+        renderObservacoes(t);
 
-        if (els.tdObs) {
-          const obs = t.obs || {};
-          if (CURRENT_ROLE === 'admin') {
-            els.tdObs.innerHTML = `<form id="tdObsForm"><textarea style="width:100%; min-height:120px; background:#0f131a; border:1px solid var(--card-border); border-radius:10px; color:var(--text); padding:10px" placeholder="Observações gerais..." autocomplete="off">${obs.text||''}</textarea><div class="actions" style="margin-top:6px"><button type="submit" class="btn btn-primary">Salvar</button></div></form>`;
-            const form = qs('#tdObsForm', els.tdObs);
-            form.addEventListener('submit', ev=>{
-              ev.preventDefault();
-              const text = qs('textarea', form).value.trim();
-              UI.saveTicketObs(t, text);
-            });
-          } else {
-            const content = obs.text ? `<p>${obs.text}${obs.user ? `<br><small>por ${obs.user}</small>` : ''}</p>` : '<p>Nenhuma observação.</p>';
-            els.tdObs.innerHTML = content;
-          }
-        }
+        renderTicketNotes(t);
+
 
         const list = DB.state.rdosByTicket[t.id] || [];
         if (els.tdRDOList) els.tdRDOList.innerHTML = list.map(i=>`<li>${i}</li>`).join('') || '<li>Nenhum RDO registrado.</li>';
@@ -859,23 +1126,27 @@
 
           const actions = document.createElement('div');
           actions.className = 'actions';
+          const btnCancel = document.createElement('button');
+          btnCancel.type = 'button';
+          btnCancel.className = 'btn btn-outline btn-sm';
+          btnCancel.id = 'btnCancelEdit';
+          btnCancel.textContent = 'Cancelar';
           const btnSave = document.createElement('button');
           btnSave.type = 'submit';
-          btnSave.className = 'btn btn-primary';
-          btnSave.textContent = 'Salvar';
+          btnSave.className = 'btn btn-primary btn-sm';
+          btnSave.id = 'btnSaveEdit';
+          btnSave.textContent = 'Salvar alterações';
           const btnArchive = document.createElement('button');
           btnArchive.type = 'button';
-          btnArchive.className = 'btn';
+          btnArchive.className = 'btn btn-ghost btn-sm';
           btnArchive.id = 'btnArchiveTicket';
           btnArchive.textContent = 'Arquivar';
           const btnDel = document.createElement('button');
           btnDel.type = 'button';
-          btnDel.className = 'del-btn btn';
+          btnDel.className = 'btn btn-danger btn-sm';
           btnDel.id = 'btnDelTicket';
           btnDel.textContent = 'Excluir';
-          actions.appendChild(btnSave);
-          actions.appendChild(btnArchive);
-          actions.appendChild(btnDel);
+          actions.append(btnCancel, btnSave, btnArchive, btnDel);
           form.appendChild(actions);
           els.tdEditForm.appendChild(form);
 
@@ -888,6 +1159,7 @@
             updated.concl = Number(updated.concl || 0);
             UI.editTicket(t, updated);
           });
+          btnCancel.addEventListener('click', ()=> UI.openTicketDetail(t));
           btnArchive.addEventListener('click', ()=> UI.archiveTicket(t));
           btnDel.addEventListener('click', ()=> UI.deleteTicket(t));
         }
@@ -929,13 +1201,9 @@
 
       async addTicketNote(t, text){
         await DB.addTicketNote(t.id, text, CURRENT_USER);
-        UI.openTicketDetail(t);
       },
-
-      async saveTicketObs(t, text){
-        if (CURRENT_ROLE !== 'admin') return;
-        await DB.setTicketObs(t.id, text, CURRENT_USER);
-        UI.openTicketDetail(t);
+      async deleteTicketNote(t, idx){
+        await DB.deleteTicketNote(t.id, idx);
       },
 
       async editTicket(t, updated){
@@ -997,13 +1265,9 @@
 
       async addProjectNote(p, text){
         await DB.addProjectNote(p.id, text, CURRENT_USER);
-        UI.openProjectDetailInline(p);
       },
-
-      async saveProjectObs(p, text){
-        if (CURRENT_ROLE !== 'admin') return;
-        await DB.setProjectObs(p.id, text, CURRENT_USER);
-        UI.openProjectDetailInline(p);
+      async deleteProjectNote(p, idx){
+        await DB.deleteProjectNote(p.id, idx);
       },
 
       async deleteProject(p){
@@ -1039,8 +1303,12 @@
       renderSLAChart(concl, prazo, targetId='chartSLA'){
         const svg = targetId ? qs('#'+targetId) : els.chartSLA;
         if (!svg) return;
-        const c = Math.max(0, Math.min(100, concl||0));
-        const p = Math.max(0, Math.min(100, prazo||0));
+        const cRaw = Math.max(0, concl || 0);
+        const pRaw = Math.max(0, prazo || 0);
+        const c = Math.min(100, cRaw);
+        const p = Math.min(100, pRaw);
+        const cText = Math.round(cRaw);
+        const pText = Math.round(pRaw);
         svg.innerHTML = `
           <defs>
             <linearGradient id="gradC" x1="0" x2="0" y1="0" y2="1">
@@ -1053,8 +1321,8 @@
           <rect x="2" y="24" width="96" height="8" rx="2" fill="#0f131a" stroke="${cssVar('--card-border')}"/>
           <rect x="2" y="24" width="${c*0.96}" height="8" rx="2" fill="url(#gradC)" />
           <g fill="#9aa0a6" font-size="3.2">
-            <text x="2" y="8">Prazo consumido: ${p}%</text>
-            <text x="2" y="36">Conclusão: ${c}%</text>
+            <text x="2" y="8">Prazo consumido: ${pText}%</text>
+            <text x="2" y="36">Conclusão: ${cText}%</text>
           </g>`;
       },
 
@@ -1104,37 +1372,9 @@
           <div class="subtab-panel" id="pdEditForm" style="display:none;padding-top:10px"></div>
         </div>`;
 
-        const notesPanel = qs('#pdNotes', els.projDetailsInline);
-        const nList = qs('#pdNotesList', notesPanel);
-        const notes = p.notes || [];
-        if (nList) nList.innerHTML = notes.map(n=>`<li><b>${n.user}:</b> ${n.text}</li>`).join('') || '<li>Nenhuma anotação.</li>';
-        const nForm = qs('#pdNoteForm', notesPanel);
-        const nBtn = qs('#pdAddNoteBtn', nForm);
-        if (nBtn && !nBtn._bound){
-          nBtn.addEventListener('click', ()=>{
-            const ta = qs('textarea', nForm);
-            const text = ta.value.trim();
-            if (!text) return;
-            UI.addProjectNote(p, text);
-            ta.value = '';
-          });
-          nBtn._bound = true;
-        }
+        renderProjectNotes(p);
 
-        const obsPanel = qs('#pdObs', els.projDetailsInline);
-        const obs = p.obs || {};
-        if (CURRENT_ROLE === 'admin') {
-          obsPanel.innerHTML = `<form id="pdObsForm"><textarea style="width:100%; min-height:120px; background:#0f131a; border:1px solid var(--card-border); border-radius:10px; color:var(--text); padding:10px" placeholder="Observações gerais..." autocomplete="off">${obs.text||''}</textarea><div class="actions" style="margin-top:6px"><button type="submit" class="btn btn-primary">Salvar</button></div></form>`;
-          const oform = qs('#pdObsForm', obsPanel);
-          oform.addEventListener('submit', ev=>{
-            ev.preventDefault();
-            const text = qs('textarea', oform).value.trim();
-            UI.saveProjectObs(p, text);
-          });
-        } else {
-          const content = obs.text ? `<p>${obs.text}${obs.user ? `<br><small>por ${obs.user}</small>` : ''}</p>` : '<p>Nenhuma observação.</p>';
-          obsPanel.innerHTML = content;
-        }
+        renderProjectObservacoes(p);
 
         // Construção do form de edição
         const form = document.createElement('form');
@@ -1271,44 +1511,113 @@
     els.projectsCarousel?.addEventListener('scroll', ()=> UI.updateProjectArrows());
 
     els.tabOverview?.addEventListener('click', ()=> UI.setActiveTab('overview'));
-    els.tabTickets?.addEventListener('click', ()=> UI.setActiveTab('tickets'));
-    els.tabProjects?.addEventListener('click', ()=> UI.setActiveTab('projects'));
-    els.tabAdmin?.addEventListener('click', ()=> els.adminMenu?.classList.toggle('open'));
-    els.btnAdminCreateTicket?.addEventListener('click', ()=>{
+    els.tabTickets?.addEventListener('click', ()=> {
+      UI.setActiveTab('tickets');
+      const firstTicket = DB.state.tickets?.[0];
+      const firstRow = document.querySelector('#ticketsTable tbody tr');
+      if (firstTicket && firstRow){
+        UI.openTicketDetail(firstTicket, firstRow);
+      } else {
+        const det = document.getElementById('ticketDetail');
+        if (det) det.style.display = 'none';
+      }
+    });
+    els.tabProjects?.addEventListener('click', ()=> {
+      const first = DB.state.projects?.[0];
+      if (first){
+        UI.openProjectDetailInline(first);
+        document.querySelectorAll('#projectsCarousel .project.selected').forEach(el=>el.classList.remove('selected'));
+        const firstCard = document.querySelector('#projectsCarousel .project');
+        firstCard?.classList.add('selected');
+      } else {
+        UI.setActiveTab('projects');
+      }
+    });
+    els.tabAdmin?.addEventListener('click', (e)=> {
+      e.stopPropagation();
+      setPageState('default');
+      adminMenuOpen = !adminMenuOpen;
+      adminMenu?.classList.toggle('open', adminMenuOpen);
+    });
+    els.btnAdminCreateTicket?.addEventListener('click', (e)=>{
+      e.stopPropagation();
       UI.showCreateTicket();
-      els.adminMenu?.classList.remove('open');
-      els.sidebar?.classList.remove('open');
+      adminMenu?.classList.toggle('open', adminMenuOpen);
     });
-    els.btnAdminCreateProject?.addEventListener('click', ()=>{
+    els.btnAdminCreateProject?.addEventListener('click', (e)=>{
+      e.stopPropagation();
       UI.showCreateProject();
-      els.adminMenu?.classList.remove('open');
-      els.sidebar?.classList.remove('open');
+      adminMenu?.classList.toggle('open', adminMenuOpen);
     });
-    els.btnAdminArchivedTickets?.addEventListener('click', ()=>{
+    els.btnAdminArchivedTickets?.addEventListener('click', (e)=>{
+      e.stopPropagation();
       UI.showArchivedTickets();
-      els.adminMenu?.classList.remove('open');
-      els.sidebar?.classList.remove('open');
+      adminMenu?.classList.toggle('open', adminMenuOpen);
     });
-    els.btnAdminFinishedTickets?.addEventListener('click', ()=>{
+    els.btnAdminFinishedTickets?.addEventListener('click', (e)=>{
+      e.stopPropagation();
       UI.showFinishedTickets();
-      els.adminMenu?.classList.remove('open');
-      els.sidebar?.classList.remove('open');
+      adminMenu?.classList.toggle('open', adminMenuOpen);
     });
-    els.btnAdminArchivedProjects?.addEventListener('click', ()=>{
+    els.btnAdminArchivedProjects?.addEventListener('click', (e)=>{
+      e.stopPropagation();
       UI.showArchivedProjects();
-      els.adminMenu?.classList.remove('open');
-      els.sidebar?.classList.remove('open');
+      adminMenu?.classList.toggle('open', adminMenuOpen);
     });
-    els.btnAdminFinishedProjects?.addEventListener('click', ()=>{
-      UI.showFinishedProjects();
-      els.adminMenu?.classList.remove('open');
-      els.sidebar?.classList.remove('open');
+    els.btnAdminFinishedProjects?.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      hideAllSections();
+      if (els.sectionFinishedProjects) els.sectionFinishedProjects.style.display = 'block';
+      setPageState('default');
+      document.body.classList.remove('tickets-page','projects-page','create-page','create-ticket-page','create-project-page','finished-projects-page');
+      document.body.classList.add('finished-projects-page');
+      if (els.sectionPill) els.sectionPill.textContent = 'Projetos finalizados';
+      UI.renderFinishedProjects();
+      adminMenu?.classList.toggle('open', adminMenuOpen);
     });
+
+    if (IS_MOBILE){
+      document.querySelectorAll('.bottom-nav .bn-btn').forEach(btn=>{
+        btn.addEventListener('click', ()=>{
+          document.querySelectorAll('.bottom-nav .bn-btn').forEach(b=>b.classList.remove('active'));
+          btn.classList.add('active');
+          const tab = btn.dataset.tab;
+          if (tab === 'overview') {
+            UI.setActiveTab('overview');
+          } else if (tab === 'tickets') {
+            UI.setActiveTab('tickets');
+            const firstTicket = DB.state.tickets?.[0];
+            const firstRow = document.querySelector('#ticketsTable tbody tr');
+            if (firstTicket && firstRow){
+              UI.openTicketDetail(firstTicket, firstRow);
+            } else {
+              const det = document.getElementById('ticketDetail');
+              if (det) det.style.display = 'none';
+            }
+          } else if (tab === 'projects') {
+            UI.setActiveTab('projects');
+            const first = DB.state.projects?.[0];
+            if (first){
+              UI.openProjectDetailInline(first);
+              document.querySelectorAll('#projectsCarousel .project.selected').forEach(el=>el.classList.remove('selected'));
+              const firstCard = document.querySelector('#projectsCarousel .project');
+              firstCard?.classList.add('selected');
+            }
+          } else if (tab === 'admin') {
+            adminMenuOpen = !adminMenuOpen;
+            adminMenu?.classList.toggle('open', adminMenuOpen);
+          }
+        });
+      });
+    }
 
     // Boot inicial
     UI.setActiveTab('overview');
     UI.renderAll();
     UI.selectTicket(DB.state.tickets[0]);
+    if (IS_MOBILE){
+      document.querySelector('.bottom-nav .bn-btn[data-tab="overview"]')?.classList.add('active');
+    }
 
     // Debug opcional: veja o que existe na DOM
     // console.table(Object.fromEntries(Object.entries(els).map(([k,v])=>[k, !!v])));

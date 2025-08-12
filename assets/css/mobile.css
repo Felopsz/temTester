@@ -1,0 +1,71 @@
+/* ===== MOBILE SHELL ===== */
+.is-mobile .app{
+  width: 100vw; height: 100vh;
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: 56px 1fr 56px;
+  gap: 8px;
+  padding: 8px;
+}
+
+.is-mobile .sidebar{ display: none !important; }
+.is-mobile .top.panel{ border-radius: 10px; }
+.is-mobile .content.panel{
+  padding: 8px;
+  height: auto;
+  overflow: auto;
+}
+
+/* Seções mais compactas */
+.is-mobile .section{ border-radius: 10px; padding: 10px; }
+
+/* Esconde gráficos no mobile (caso o template desktop seja carregado por engano) */
+.is-mobile #sectionCharts{ display: none !important; }
+
+/* Bottom nav */
+.is-mobile .bottom-nav{
+  position: fixed; left: 8px; right: 8px; bottom: 8px;
+  display: flex; gap: 8px; justify-content: space-between;
+  background: var(--surface);
+  border: 1px solid var(--card-border);
+  border-radius: 12px; padding: 8px;
+}
+.is-mobile .bn-btn{
+  flex: 1;
+  padding: 10px 6px;
+  border-radius: 10px;
+  border: 1px solid var(--card-border);
+  background: #12161e;
+  color: var(--text);
+  font-size: 13px;
+}
+.is-mobile .bn-btn.active{
+  border-color: rgba(122,162,255,.6);
+  box-shadow: 0 0 0 4px rgba(122,162,255,.12) inset;
+}
+
+/* Tabelas em cartões (reforço do seu CSS responsivo) */
+.is-mobile #ticketsTable tr{ padding: 10px; }
+
+/* Admin submenu overlay */
+.is-mobile .admin-subnav{
+  position: fixed;
+  bottom: 72px;
+  left: 8px; right: 8px;
+  display: none;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--surface);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  padding: 8px;
+}
+.is-mobile .admin-subnav.open{ display: flex; }
+.is-mobile .admin-subnav .navbtn{
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid var(--card-border);
+  background: #12161e;
+  color: var(--text);
+  text-align: left;
+}

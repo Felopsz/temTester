@@ -43,7 +43,7 @@ const DB = {
     this.state.tickets = Object
       .entries(data.tickets || {})
       .filter(([,t]) => t && typeof t === 'object')
-      .map(([id, t]) => ({ id, ...t, notes: t.notes || [], obs: t.obs || {} }))
+      .map(([id, t]) => ({ id, ...t, notes: t.notes || [], obs: t.obs || {}, observacoes: t.observacoes || [] }))
       .sort((a, b) => {
         const da = parseDateLocal(a.dueDate);
         const db = parseDateLocal(b.dueDate);
@@ -54,7 +54,7 @@ const DB = {
     this.state.archivedTickets = Object
       .entries(data.archivedTickets || {})
       .filter(([,t]) => t && typeof t === 'object')
-      .map(([id, t]) => ({ id, ...t, notes: t.notes || [], obs: t.obs || {} }))
+      .map(([id, t]) => ({ id, ...t, notes: t.notes || [], obs: t.obs || {}, observacoes: t.observacoes || [] }))
       .sort((a, b) => {
         const da = parseDateLocal(a.dueDate);
         const db = parseDateLocal(b.dueDate);
@@ -65,7 +65,7 @@ const DB = {
     this.state.finishedTickets = Object
       .entries(data.finishedTickets || {})
       .filter(([,t]) => t && typeof t === 'object')
-      .map(([id, t]) => ({ id, ...t, notes: t.notes || [], obs: t.obs || {} }))
+      .map(([id, t]) => ({ id, ...t, notes: t.notes || [], obs: t.obs || {}, observacoes: t.observacoes || [] }))
       .sort((a, b) => {
         const da = parseDateLocal(a.dueDate);
         const db = parseDateLocal(b.dueDate);
@@ -76,17 +76,17 @@ const DB = {
     this.state.projects = Object
       .entries(data.projects || {})
       .filter(([,p]) => p && typeof p === 'object')
-      .map(([id, p]) => ({ id, ...p, notes: p.notes || [], obs: p.obs || {} }))
+      .map(([id, p]) => ({ id, ...p, notes: p.notes || [], obs: p.obs || {}, observacoes: p.observacoes || [] }))
       .sort((a, b) => parseDateLocal(a.prazo) - parseDateLocal(b.prazo));
     this.state.archivedProjects = Object
       .entries(data.archivedProjects || {})
       .filter(([,p]) => p && typeof p === 'object')
-      .map(([id, p]) => ({ id, ...p, notes: p.notes || [], obs: p.obs || {} }))
+      .map(([id, p]) => ({ id, ...p, notes: p.notes || [], obs: p.obs || {}, observacoes: p.observacoes || [] }))
       .sort((a, b) => parseDateLocal(a.prazo) - parseDateLocal(b.prazo));
     this.state.finishedProjects = Object
       .entries(data.finishedProjects || {})
       .filter(([,p]) => p && typeof p === 'object')
-      .map(([id, p]) => ({ id, ...p, notes: p.notes || [], obs: p.obs || {} }))
+      .map(([id, p]) => ({ id, ...p, notes: p.notes || [], obs: p.obs || {}, observacoes: p.observacoes || [] }))
       .sort((a, b) => parseDateLocal(a.prazo) - parseDateLocal(b.prazo));
     this.state.materialsByProject = data.materialsByProject || {};
     this.state.rdosByProject = data.rdosByProject || {};
@@ -118,6 +118,7 @@ const DB = {
     delete data.id;
     data.notes = data.notes || [];
     data.obs = data.obs || {};
+    data.observacoes = data.observacoes || [];
     this.state.tickets.push({ id, ...data });
     this.state.tickets.sort((a, b) => {
       const da = parseDateLocal(a.dueDate);
@@ -148,6 +149,7 @@ const DB = {
     delete data.id;
     data.notes = data.notes || [];
     data.obs = data.obs || {};
+    data.observacoes = data.observacoes || [];
     this.state.projects.push({ id, ...data });
     this.state.projects.sort((a, b) => parseDateLocal(a.prazo) - parseDateLocal(b.prazo));
     this.state.materialsByProject[id] = this.state.materialsByProject[id] || [];
@@ -206,18 +208,18 @@ const DB = {
       console.warn('Não foi possível salvar anotação', e);
     }
   },
-  async setTicketObs(id, text, user){
+  async deleteTicketNote(id, idx){
     const t = this.state.tickets.find(x=>x.id===id);
-    if(!t) return;
-    t.obs = {text, user};
+    if(!t || !t.notes) return;
+    t.notes.splice(idx,1);
     try{
       await fetch('/api/db', {
         method:'PATCH',
         headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({tickets:{[id]: {obs: t.obs}}})
+        body: JSON.stringify({tickets:{[id]: {notes: t.notes}}})
       });
     }catch(e){
-      console.warn('Não foi possível salvar observação', e);
+      console.warn('Não foi possível excluir anotação', e);
     }
   },
   async addProjectNote(id, text, user){
@@ -235,18 +237,18 @@ const DB = {
       console.warn('Não foi possível salvar anotação', e);
     }
   },
-  async setProjectObs(id, text, user){
+  async deleteProjectNote(id, idx){
     const p = this.state.projects.find(x=>x.id===id);
-    if(!p) return;
-    p.obs = {text, user};
+    if(!p || !p.notes) return;
+    p.notes.splice(idx,1);
     try{
       await fetch('/api/db', {
         method:'PATCH',
         headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({projects:{[id]: {obs: p.obs}}})
+        body: JSON.stringify({projects:{[id]: {notes: p.notes}}})
       });
     }catch(e){
-      console.warn('Não foi possível salvar observação', e);
+      console.warn('Não foi possível excluir anotação', e);
     }
   },
   async archiveTicket(t){
