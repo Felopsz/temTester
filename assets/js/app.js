@@ -143,6 +143,40 @@
     return Math.max(0, pct);
   }
 
+  // ===== Observações: utils =====
+  function isAdminUser(){
+    return CURRENT_ROLE === 'admin';
+  }
+
+  function esc(s){
+    return String(s ?? '')
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+
+  function ensureObsArray(ticket){
+    if (!ticket.observacoes) {
+      ticket.observacoes = ticket.obs || [];
+      delete ticket.obs;
+    }
+    if (typeof ticket.observacoes === 'string'){
+      ticket.observacoes = [{ id: Date.now(), texto: ticket.observacoes, autor: 'sistema', criadoEm: new Date() }];
+    }
+    if (!Array.isArray(ticket.observacoes)){
+      ticket.observacoes = [ticket.observacoes];
+    }
+    ticket.observacoes = ticket.observacoes.map((o,i) => ({
+      id: o?.id ?? (Date.now()+i),
+      texto: String(o?.texto ?? o?.text ?? o ?? ''),
+      autor: o?.autor ?? o?.author ?? '—',
+      criadoEm: o?.criadoEm ?? o?.createdAt ?? new Date(),
+    }));
+  }
+
+  function findTicketById(id){
+    return window.DATA?.tickets?.find(t => String(t.id) === String(id)) || null;
+  }
+
   // Controla classes do <body> conforme a página
   function setPageState(state){
     document.body.classList.remove('create-page','create-ticket-page','create-project-page');
@@ -169,6 +203,95 @@
       const el = document.getElementById(id);
       if (el) el.style.display = 'none';
     });
+  }
+
+  function renderObservacoes(ticket){
+    ensureObsArray(ticket);
+    const admin = isAdminUser();
+    const panel = document.getElementById('tdObs');
+    if (!panel) return;
+
+    const items = ticket.observacoes;
+    const listHtml = items.length ? `
+      <ul id="tdObsList" style="display:grid; gap:8px; margin-left:18px">
+        ${items.map(o => `
+          <li data-id="${o.id}" style="display:flex; gap:8px; align-items:flex-start">
+            <div style="flex:1">
+              <div style="font-size:13px; color:#cbd5e1">${esc(o.texto)}</div>
+              <small style="color:#9aa0a6">${esc(o.autor)} • ${new Date(o.criadoEm).toLocaleDateString()}</small>
+            </div>
+            ${admin ? `
+              <div class="actions-cell">
+                <button class="btn btn-outline btn-sm" data-act="edit">Editar</button>
+                <button class="btn btn-danger  btn-sm" data-act="del">Excluir</button>
+              </div>
+            ` : ``}
+          </li>
+        `).join('')}
+      </ul>
+    ` : `
+      <div id="tdObsList"></div>
+    `;
+
+    const formHtml = admin ? `
+      <div id="tdObsForm" style="margin-top:10px">
+        <textarea id="tdObsInput" style="width:100%; min-height:100px; background:#0f131a; border:1px solid var(--card-border); border-radius:10px; color:var(--text); padding:10px" placeholder="Adicionar observação..."></textarea>
+        <div class="actions" style="margin-top:6px">
+          <button type="button" class="btn btn-primary btn-sm" id="tdObsAdd">Adicionar</button>
+        </div>
+      </div>
+    ` : ``;
+
+    panel.innerHTML = listHtml + formHtml;
+
+    if (admin){
+      const addBtn = document.getElementById('tdObsAdd');
+      addBtn?.addEventListener('click', () => {
+        const ta = document.getElementById('tdObsInput');
+        const txt = (ta?.value || '').trim();
+        if (!txt) return;
+        ticket.observacoes.push({
+          id: Date.now(),
+          texto: txt,
+          autor: CURRENT_USER || 'admin',
+          criadoEm: new Date()
+        });
+        renderObservacoes(ticket);
+      });
+
+      document.getElementById('tdObs')?.addEventListener('click', (e) => {
+        const btn = e.target.closest('button[data-act]');
+        if (!btn) return;
+        const li = btn.closest('li[data-id]');
+        if (!li) return;
+        const id = li.getAttribute('data-id');
+        const idx = ticket.observacoes.findIndex(o => String(o.id) === String(id));
+        if (idx < 0) return;
+
+        if (btn.dataset.act === 'del'){
+          ticket.observacoes.splice(idx, 1);
+          renderObservacoes(ticket);
+        } else if (btn.dataset.act === 'edit'){
+          const o = ticket.observacoes[idx];
+          li.innerHTML = `
+            <div style="flex:1; display:grid; gap:6px">
+              <textarea class="obs-edit" style="width:100%; min-height:100px; background:#0f131a; border:1px solid var(--card-border); border-radius:10px; color:var(--text); padding:10px">${esc(o.texto)}</textarea>
+              <small style="color:#9aa0a6">${esc(o.autor)} • ${new Date(o.criadoEm).toLocaleDateString()}</small>
+            </div>
+            <div class="actions-cell">
+              <button class="btn btn-outline btn-sm" data-act="cancel">Cancelar</button>
+              <button class="btn btn-primary btn-sm" data-act="save">Salvar</button>
+            </div>
+          `;
+          li.querySelector('[data-act="cancel"]').addEventListener('click', () => renderObservacoes(ticket));
+          li.querySelector('[data-act="save"]').addEventListener('click', () => {
+            const nv = li.querySelector('.obs-edit').value.trim();
+            ticket.observacoes[idx].texto = nv;
+            renderObservacoes(ticket);
+          });
+        }
+      }, { once: true });
+    }
   }
 
   // ========== DASHBOARD ==========
@@ -219,6 +342,9 @@
       _subtabsBound: false,
     };
 
+    const adminMenu = els.adminMenu;
+    let adminMenuOpen = adminMenu?.classList.contains('open') || false;
+
     // Oculta itens de admin para usuários comuns
     if (CURRENT_ROLE !== 'admin') {
       if (els.tabConfig) els.tabConfig.style.display = 'none';
@@ -248,6 +374,7 @@
         [els.tabOverview, els.tabTickets, els.tabProjects].forEach(b=> b?.classList.remove('active'));
         hideAllSections();
         setPageState('default');
+        adminMenu?.classList.toggle('open', adminMenuOpen);
 
         document.body.classList.remove('projects-page','tickets-page','finished-projects-page');
         if (which === 'projects') document.body.classList.add('projects-page');
@@ -404,6 +531,13 @@
           el.addEventListener('click', ()=> UI.openProjectDetailInline(p));
         els.projectsCarousel.appendChild(el);
       });
+
+        if (document.body.classList.contains('projects-page') && DB.state.projects.length){
+          UI.openProjectDetailInline(DB.state.projects[0]);
+          document.querySelectorAll('#projectsCarousel .project.selected').forEach(el=>el.classList.remove('selected'));
+          const firstCard = els.projectsCarousel.querySelector('.project');
+          firstCard?.classList.add('selected');
+        }
       },
 
       renderArchivedTickets(){
@@ -623,8 +757,10 @@
               form.reset();
               ui.renderTickets();
               ui.setActiveTab('tickets');
-              els.adminMenu?.classList.remove('open');
-              els.sidebar?.classList.remove('open');
+              adminMenu?.classList.toggle('open', adminMenuOpen);
+              const ft = DB.state.tickets?.[0];
+              const fr = document.querySelector('#ticketsTable tbody tr');
+              if (ft && fr) UI.openTicketDetail(ft, fr);
             }catch(e){
               alert(e.message || 'Erro ao salvar chamado');
             }
@@ -723,6 +859,13 @@
               ui.renderProjects();
               ui.updateProjectArrows();
               ui.setActiveTab('projects');
+              const fp = DB.state.projects?.[0];
+              if (fp){
+                UI.openProjectDetailInline(fp);
+                document.querySelectorAll('#projectsCarousel .project.selected').forEach(el=>el.classList.remove('selected'));
+                const firstCard = document.querySelector('#projectsCarousel .project');
+                firstCard?.classList.add('selected');
+              }
             }catch(e){
               alert(e.message || 'Erro ao salvar projeto');
             }
@@ -813,13 +956,10 @@
             <h4>Descrição</h4>
             <p>${t.descricao}</p>
           ` : '';
-          const observ = t.obs ? `
-            <div class="divider"></div>
-            <h4>Observações</h4>
-            <p>${t.obs}</p>
-          ` : '';
-          els.tdDesc.innerHTML = `<div class="td-desc">${resumo}${descricao}${observ}</div>`;
+          els.tdDesc.innerHTML = `<div class="td-desc">${resumo}${descricao}</div>`;
         }
+
+        renderObservacoes(t);
 
         if (els.tdNotes) {
           const listEl = qs('#tdNotesList', els.tdNotes);
@@ -839,21 +979,6 @@
           }
         }
 
-        if (els.tdObs) {
-          const obs = t.obs || {};
-          if (CURRENT_ROLE === 'admin') {
-            els.tdObs.innerHTML = `<form id="tdObsForm"><textarea style="width:100%; min-height:120px; background:#0f131a; border:1px solid var(--card-border); border-radius:10px; color:var(--text); padding:10px" placeholder="Observações gerais..." autocomplete="off">${obs.text||''}</textarea><div class="actions" style="margin-top:6px"><button type="submit" class="btn btn-primary">Salvar</button></div></form>`;
-            const form = qs('#tdObsForm', els.tdObs);
-            form.addEventListener('submit', ev=>{
-              ev.preventDefault();
-              const text = qs('textarea', form).value.trim();
-              UI.saveTicketObs(t, text);
-            });
-          } else {
-            const content = obs.text ? `<p>${obs.text}${obs.user ? `<br><small>por ${obs.user}</small>` : ''}</p>` : '<p>Nenhuma observação.</p>';
-            els.tdObs.innerHTML = content;
-          }
-        }
 
         const list = DB.state.rdosByTicket[t.id] || [];
         if (els.tdRDOList) els.tdRDOList.innerHTML = list.map(i=>`<li>${i}</li>`).join('') || '<li>Nenhum RDO registrado.</li>';
@@ -989,12 +1114,6 @@
 
       async addTicketNote(t, text){
         await DB.addTicketNote(t.id, text, CURRENT_USER);
-        UI.openTicketDetail(t);
-      },
-
-      async saveTicketObs(t, text){
-        if (CURRENT_ROLE !== 'admin') return;
-        await DB.setTicketObs(t.id, text, CURRENT_USER);
         UI.openTicketDetail(t);
       },
 
@@ -1331,38 +1450,61 @@
     els.projectsCarousel?.addEventListener('scroll', ()=> UI.updateProjectArrows());
 
     els.tabOverview?.addEventListener('click', ()=> UI.setActiveTab('overview'));
-    els.tabTickets?.addEventListener('click', ()=> UI.setActiveTab('tickets'));
-    els.tabProjects?.addEventListener('click', ()=> UI.setActiveTab('projects'));
-    els.tabAdmin?.addEventListener('click', ()=> {
+    els.tabTickets?.addEventListener('click', ()=> {
+      UI.setActiveTab('tickets');
+      const firstTicket = DB.state.tickets?.[0];
+      const firstRow = document.querySelector('#ticketsTable tbody tr');
+      if (firstTicket && firstRow){
+        UI.openTicketDetail(firstTicket, firstRow);
+      } else {
+        const det = document.getElementById('ticketDetail');
+        if (det) det.style.display = 'none';
+      }
+    });
+    els.tabProjects?.addEventListener('click', ()=> {
+      const first = DB.state.projects?.[0];
+      if (first){
+        UI.openProjectDetailInline(first);
+        document.querySelectorAll('#projectsCarousel .project.selected').forEach(el=>el.classList.remove('selected'));
+        const firstCard = document.querySelector('#projectsCarousel .project');
+        firstCard?.classList.add('selected');
+      } else {
+        UI.setActiveTab('projects');
+      }
+    });
+    els.tabAdmin?.addEventListener('click', (e)=> {
+      e.stopPropagation();
       setPageState('default');
-      els.adminMenu?.classList.toggle('open');
+      adminMenuOpen = !adminMenuOpen;
+      adminMenu?.classList.toggle('open', adminMenuOpen);
     });
-    els.btnAdminCreateTicket?.addEventListener('click', ()=>{
+    els.btnAdminCreateTicket?.addEventListener('click', (e)=>{
+      e.stopPropagation();
       UI.showCreateTicket();
-      els.adminMenu?.classList.remove('open');
-      els.sidebar?.classList.remove('open');
+      adminMenu?.classList.toggle('open', adminMenuOpen);
     });
-    els.btnAdminCreateProject?.addEventListener('click', ()=>{
+    els.btnAdminCreateProject?.addEventListener('click', (e)=>{
+      e.stopPropagation();
       UI.showCreateProject();
-      els.adminMenu?.classList.remove('open');
-      els.sidebar?.classList.remove('open');
+      adminMenu?.classList.toggle('open', adminMenuOpen);
     });
-    els.btnAdminArchivedTickets?.addEventListener('click', ()=>{
+    els.btnAdminArchivedTickets?.addEventListener('click', (e)=>{
+      e.stopPropagation();
       UI.showArchivedTickets();
-      els.adminMenu?.classList.remove('open');
-      els.sidebar?.classList.remove('open');
+      adminMenu?.classList.toggle('open', adminMenuOpen);
     });
-    els.btnAdminFinishedTickets?.addEventListener('click', ()=>{
+    els.btnAdminFinishedTickets?.addEventListener('click', (e)=>{
+      e.stopPropagation();
       UI.showFinishedTickets();
-      els.adminMenu?.classList.remove('open');
-      els.sidebar?.classList.remove('open');
+      adminMenu?.classList.toggle('open', adminMenuOpen);
     });
-    els.btnAdminArchivedProjects?.addEventListener('click', ()=>{
+    els.btnAdminArchivedProjects?.addEventListener('click', (e)=>{
+      e.stopPropagation();
       UI.showArchivedProjects();
-      els.adminMenu?.classList.remove('open');
-      els.sidebar?.classList.remove('open');
+      adminMenu?.classList.toggle('open', adminMenuOpen);
     });
-    els.btnAdminFinishedProjects?.addEventListener('click', ()=>{
+    els.btnAdminFinishedProjects?.addEventListener('click', (e)=>{
+      e.stopPropagation();
       hideAllSections();
       if (els.sectionFinishedProjects) els.sectionFinishedProjects.style.display = 'block';
       setPageState('default');
@@ -1370,8 +1512,7 @@
       document.body.classList.add('finished-projects-page');
       if (els.sectionPill) els.sectionPill.textContent = 'Projetos finalizados';
       UI.renderFinishedProjects();
-      els.adminMenu?.classList.remove('open');
-      els.sidebar?.classList.remove('open');
+      adminMenu?.classList.toggle('open', adminMenuOpen);
     });
 
     // Boot inicial
