@@ -1,17 +1,33 @@
 (function(){
+  let adminMenuOpen = false;
+
+  function detectMobile(){
+    const params = new URLSearchParams(location.search);
+    const force = params.get('mobile') ?? localStorage.getItem('forceMobile');
+    if (force === '1') return true;
+    if (force === '0') return false;
+    const isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+    const isNarrow = window.matchMedia('(max-width: 900px)').matches;
+    return isTouch && isNarrow;
+  }
+  let IS_MOBILE = detectMobile();
+  document.body.classList.toggle('is-mobile', IS_MOBILE);
+
+  function renderShell(){
+    const loginView = qs('#view-login');
+    const dashView = qs('#view-dashboard');
+    if (loginView) loginView.innerHTML = IS_MOBILE && tpl.loginMobile ? tpl.loginMobile() : tpl.login();
+    if (dashView){
+      dashView.style.display = 'none';
+      dashView.innerHTML = IS_MOBILE && tpl.dashboardMobile ? tpl.dashboardMobile() : tpl.dashboard();
+    }
+    document.body.classList.toggle('is-mobile', IS_MOBILE);
+  }
+
   // App principal: fluxo de login, carregamento de dados e dashboard
   // ========== BOOT ==========
   document.addEventListener('DOMContentLoaded', () => {
-    const loginView = qs('#view-login');
-    const dashView = qs('#view-dashboard');
-
-    // Sempre injeta os templates para garantir a árvore esperada
-    if (loginView) loginView.innerHTML = tpl.login();
-    if (dashView) {
-      dashView.style.display = 'none';
-      dashView.innerHTML = tpl.dashboard(); // <— força injeção
-    }
-
+    renderShell();
     bindLogin();
   });
 
@@ -429,7 +445,7 @@
     };
 
     const adminMenu = els.adminMenu;
-    let adminMenuOpen = adminMenu?.classList.contains('open') || false;
+    adminMenuOpen = adminMenu?.classList.contains('open') || adminMenuOpen;
 
     // Oculta itens de admin para usuários comuns
     if (CURRENT_ROLE !== 'admin') {
@@ -498,6 +514,7 @@
       },
 
       _renderOverview(){
+        if (IS_MOBILE) return;
         const t = this._selected || DB.state.tickets[0];
         if (!t) return;
         const p = computeDeadlinePct(t.createdAt, t.dueDate);
@@ -1004,7 +1021,7 @@
         if(this._selectedRow){ this._selectedRow.classList.remove('selected'); }
         if(rowEl){ rowEl.classList.add('selected'); this._selectedRow = rowEl; }
         const p = computeDeadlinePct(t.createdAt, t.dueDate);
-        this.renderSLAChart(t.concl, Math.min(p,100));
+        if (!IS_MOBILE) this.renderSLAChart(t.concl, Math.min(p,100));
       },
 
       openTicketDetail(t, rowEl){
@@ -1559,10 +1576,48 @@
       adminMenu?.classList.toggle('open', adminMenuOpen);
     });
 
+    if (IS_MOBILE){
+      document.querySelectorAll('.bottom-nav .bn-btn').forEach(btn=>{
+        btn.addEventListener('click', ()=>{
+          document.querySelectorAll('.bottom-nav .bn-btn').forEach(b=>b.classList.remove('active'));
+          btn.classList.add('active');
+          const tab = btn.dataset.tab;
+          if (tab === 'overview') {
+            UI.setActiveTab('overview');
+          } else if (tab === 'tickets') {
+            UI.setActiveTab('tickets');
+            const firstTicket = DB.state.tickets?.[0];
+            const firstRow = document.querySelector('#ticketsTable tbody tr');
+            if (firstTicket && firstRow){
+              UI.openTicketDetail(firstTicket, firstRow);
+            } else {
+              const det = document.getElementById('ticketDetail');
+              if (det) det.style.display = 'none';
+            }
+          } else if (tab === 'projects') {
+            UI.setActiveTab('projects');
+            const first = DB.state.projects?.[0];
+            if (first){
+              UI.openProjectDetailInline(first);
+              document.querySelectorAll('#projectsCarousel .project.selected').forEach(el=>el.classList.remove('selected'));
+              const firstCard = document.querySelector('#projectsCarousel .project');
+              firstCard?.classList.add('selected');
+            }
+          } else if (tab === 'admin') {
+            adminMenuOpen = !adminMenuOpen;
+            adminMenu?.classList.toggle('open', adminMenuOpen);
+          }
+        });
+      });
+    }
+
     // Boot inicial
     UI.setActiveTab('overview');
     UI.renderAll();
     UI.selectTicket(DB.state.tickets[0]);
+    if (IS_MOBILE){
+      document.querySelector('.bottom-nav .bn-btn[data-tab="overview"]')?.classList.add('active');
+    }
 
     // Debug opcional: veja o que existe na DOM
     // console.table(Object.fromEntries(Object.entries(els).map(([k,v])=>[k, !!v])));
