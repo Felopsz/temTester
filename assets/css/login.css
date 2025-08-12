@@ -1,3 +1,12 @@
+/* ==========================================================================
+   Telemix CSS — login.css (Tela de autenticação)
+   ========================================================================== */
+
+/**
+ * Escopo: estilos exclusivos da tela de login.
+ * Mantém o cartão centralizado, efeitos sutis e responsividade básica.
+ */
+
 /* LOGIN */
 #view-login{display:block}
 #view-dashboard{display:none}

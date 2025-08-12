@@ -1,3 +1,17 @@
+/* ==========================================================================
+   Telemix CSS — layout.css (App Grid / Sidebars / Painéis)
+   ========================================================================== */
+
+/**
+ * Este arquivo define o *layout estrutural* do app:
+ * - Grid principal (.app)
+ * - Sidebar, Topbar e Content
+ * - Estados responsivos por breakpoint
+ * - Estados de página (e.g., .projects-page)
+ *
+ * Dica: Ajustes visuais de componentes vão em base.css / dashboard.css.
+ */
+
 /* Estrutura geral (app, painéis, sidebar, topo, conteúdo) */
 .app{ position:relative; z-index:1; width:min(98vw, 1360px); height:min(94vh, 860px); display:grid; grid-template-columns: 260px 1fr; grid-template-rows: 64px 1fr; gap:12px; padding:14px; background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04)); border:1px solid var(--card-border); border-radius: 20px; box-shadow: var(--shadow); backdrop-filter: blur(var(--blur)); }
 .app .panel{ background: var(--surface); border:1px solid var(--card-border); border-radius: 14px; }
@@ -31,7 +45,6 @@
   .sidebar.open{ opacity:1; transform: translateY(0) scale(1); pointer-events:auto }
   .top{ grid-column:1 }
   .hamburger{ display:block; position:relative; z-index:11 }
-  .tv-mode-btn{ display:none }
   .content{ grid-column:1; grid-template-columns: repeat(6, 1fr); }
 }
 @media (max-width: 560px){ .content{ grid-template-columns: 1fr } }
