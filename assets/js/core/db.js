@@ -1,30 +1,5 @@
-// Dados e carregamento do banco
-let CURRENT_USER = 'admin';
-let CURRENT_ROLE = 'admin';
-const TICKET_FIELD_LABELS = {
-  id:'ID',
-  createdAt:'Data de criação',
-  solicitante:'Aberto por',
-  telefone:'Contato',
-  meetPoint:'Ponto de encontro',
-  dupla:'Dupla',
-  concl:'% de conclusão',
-  dueDate:'Prazo (data final)',
-  resumo:'Resumo',
-  descricao:'Descrição'
-};
-const TICKET_FIELDS = Object.keys(TICKET_FIELD_LABELS);
-
-function parseDateLocal(str){
-  if (!str) return new Date(NaN);
-  if (typeof str === 'string' && str.length <= 10){
-    const [y,m,d] = str.split('-').map(Number);
-    return new Date(y, m-1, d, 23, 59, 59);
-  }
-  return new Date(str);
-}
-
-const DB = {
+import { parseDateLocal } from './dates.js';
+export const DB = {
   state: {
     tickets: [],
     archivedTickets: [],
@@ -362,9 +337,3 @@ const DB = {
     }catch(e){ console.warn('Não foi possível excluir projeto', e); }
   }
 };
-
-window.CURRENT_USER = CURRENT_USER;
-window.CURRENT_ROLE = CURRENT_ROLE;
-window.TICKET_FIELD_LABELS = TICKET_FIELD_LABELS;
-window.TICKET_FIELDS = TICKET_FIELDS;
-window.DB = DB;
