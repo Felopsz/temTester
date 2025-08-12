@@ -363,11 +363,21 @@
   }
 
   function renderTicketNotes(t){
-    renderNotesList(t, 'tdNotes', (owner, text) => UI.addTicketNote(owner, text), (owner, idx) => UI.deleteTicketNote(owner, idx));
+    renderNotesList(
+      t,
+      'tdNotes',
+      (owner, text) => DB.addTicketNote(owner.id, text, CURRENT_USER),
+      (owner, idx) => DB.deleteTicketNote(owner.id, idx)
+    );
   }
 
   function renderProjectNotes(p){
-    renderNotesList(p, 'pdNotes', (owner, text) => UI.addProjectNote(owner, text), (owner, idx) => UI.deleteProjectNote(owner, idx));
+    renderNotesList(
+      p,
+      'pdNotes',
+      (owner, text) => DB.addProjectNote(owner.id, text, CURRENT_USER),
+      (owner, idx) => DB.deleteProjectNote(owner.id, idx)
+    );
   }
 
   // ========== DASHBOARD ==========
