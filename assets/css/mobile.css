@@ -1,6 +1,6 @@
 /* ==========================================================================
    Telemix CSS — mobile.css (Shell Mobile + Overlays + Nav)
-   ========================================================================== */
+  ========================================================================== */
 
 /**
  * Objetivo
@@ -17,7 +17,9 @@
  */
 
  /* ========== Shell Mobile ==========
-  (as regras originais seguem após os aprimoramentos) */ 
+ (as regras originais seguem após os aprimoramentos) */
+
+body.is-mobile{ padding-bottom:0; }
 
 /* Viewport real em navegadores móveis modernos */
 .is-mobile .app {
@@ -28,7 +30,7 @@
 
 /* Conteúdo com espaço para bottom-nav + safe-area */
 .is-mobile .content.panel {
-  padding-bottom: calc(56px + 12px + var(--safe-bottom)); /* 56 nav + respiro */
+  padding-bottom: calc(56px + var(--safe-bottom));
   overscroll-behavior-y: contain;
   -webkit-overflow-scrolling: touch;
 }
@@ -52,7 +54,7 @@
   display: grid;
   grid-template-columns: 1fr;
   grid-template-rows: 56px 1fr 56px;
-  gap: 8px;
+  gap: 16px;
   padding: 8px;
 }
 
@@ -125,10 +127,21 @@
 
 /* Tickets block: no horizontal scroll */
 .is-mobile #ticketsWrap{ overflow-x:hidden; }
-.is-mobile #ticketsTable{ min-width:100%; }
+.is-mobile #ticketsTable{ width:100%; min-width:0; }
 
 /* Detalhes de chamado/projeto sem overflow lateral */
 .is-mobile .ticket-detail,
 .is-mobile .project-detail-inline{
   overflow-x:hidden;
+  width:100%;
+}
+
+/* Subtabs em múltiplas linhas no mobile */
+.is-mobile .ticket-detail .subtabs,
+.is-mobile .project-detail-inline .subtabs{
+  flex-wrap: wrap;
+}
+.is-mobile .ticket-detail .subtabs .subtab,
+.is-mobile .project-detail-inline .subtabs .subtab{
+  flex:1 1 calc(50% - 8px);
 }

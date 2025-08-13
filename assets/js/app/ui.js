@@ -1090,6 +1090,9 @@
     // ====== listeners globais (blindados) ======
     els.btnLogout?.addEventListener('click', ()=>{ location.reload(); });
     els.btnHamb?.addEventListener('click', ()=> els.sidebar?.classList.toggle('open'));
+    els.sidebar?.addEventListener('click', ev=>{
+      if(ev.target === els.sidebar) closeSidebar();
+    });
     els.caroPrev?.addEventListener('click', ()=> UI.scrollProjects(-1));
     els.caroNext?.addEventListener('click', ()=> UI.scrollProjects(1));
     els.projectsCarousel?.addEventListener('scroll', ()=> UI.updateProjectArrows());
