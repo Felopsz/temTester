@@ -1,3 +1,21 @@
+/* ==========================================================================
+   Telemix CSS — dashboard.css (Seções, Tabelas, Projetos, TV Mode)
+   ========================================================================== */
+
+/**
+ * Escopo
+ * ------
+ * - Componentes específicos da dashboard (tables, carrossel, detalhes)
+ * - Layouts de páginas (Chamados, Projetos, Finalizados/Arquivados)
+ * - Modo TV (colapsa sidebar e expande conteúdo)
+ *
+ * Notas de Arquitetura
+ * --------------------
+ * - Botões usam a base de base.css; aqui só variantes/fino quando necessário.
+ * - Mantemos a responsividade por media queries e por classes de página
+ *   adicionadas pelo JS (e.g., .tickets-page). (ref: app.js)
+ */
+
 /* DASHBOARD específicos */
 
 /* Seções e títulos */
@@ -17,6 +35,7 @@
 .table-wrap{
   max-height: clamp(220px, 40vh, 440px);
   overflow:auto; overscroll-behavior: contain;
+  width:100%;
 }
 /* scrollbar custom da tabela (overview e tickets) */
 .table-wrap{ scrollbar-width: thin; scrollbar-color: rgba(122,162,255,.5) rgba(255,255,255,.06); }
@@ -46,6 +65,11 @@
 .nums b{ color:#fff }
 .progress{ height:8px; background:#0f131a; border:1px solid var(--card-border); border-radius:8px; overflow:hidden }
 .progress > i{ display:block; height:100%; background: linear-gradient(180deg, var(--brand), var(--brand-strong)); width:0% }
+.prog.overdue .nums{ color:#f87171 }
+.prog.overdue .nums b{ color:#f87171 }
+.prog.overdue .progress{ border-color:#f87171 }
+.prog.overdue .progress > i{ background: linear-gradient(180deg, #f87171, #ef4444) }
+.overdue{ color:#f87171 }
 
 /* Gráficos (overview) */
 .charts{ grid-column: span 5; }
@@ -96,14 +120,50 @@
   text-decoration: underline; cursor: pointer; padding: 0; font: inherit;
 }
 
-/* Detalhe do chamado (base) */
-.ticket-detail{
+/* Detalhes inline de chamado e projeto */
+.ticket-detail,
+.project-detail-inline{
   background:#0f131a; border:1px solid var(--card-border);
-  border-radius:12px; padding:12px; margin-top:8px;
+  border-radius:12px; padding:12px;
+  display:grid;
+  grid-template-rows:auto auto auto 1fr;
+  gap:8px;
+  min-height:0;
 }
 
-/* Subtab ativa */
-.subtabs .subtab.active{
+.ticket-detail{ margin-top:0 !important; }
+.project-detail-inline{ margin-top:8px; }
+
+/* subtabs genéricas */
+.ticket-detail .subtab-panel,
+.project-detail-inline .subtab-panel{
+  min-height:0;
+  height:100%;
+  overflow:auto;
+}
+
+.ticket-detail .subtabs,
+.project-detail-inline .subtabs{
+  display:flex;
+  gap:8px;
+  border-bottom:1px solid var(--card-border);
+  padding-bottom:0;
+}
+
+.ticket-detail .subtabs .subtab,
+.project-detail-inline .subtabs .subtab{
+  background:transparent;
+  border:1px solid var(--card-border);
+  border-bottom:0;
+  padding:8px 12px;
+  border-top-left-radius:10px;
+  border-top-right-radius:10px;
+  cursor:pointer;
+  color:var(--text);
+}
+
+.ticket-detail .subtabs .subtab.active,
+.project-detail-inline .subtabs .subtab.active{
   box-shadow: 0 -2px 0 var(--brand) inset;
   border-color: rgba(122,162,255,.6);
 }
@@ -138,8 +198,16 @@
 
 /* garante que cada coisa fique na linha certa */
 .tickets-page #sectionTickets > h2{ grid-area: title; margin:0; padding:0; line-height:1.1; }
-.tickets-page #sectionTickets .table-wrap{ grid-area: list; min-height:0; overflow:auto; }
-.tickets-page #sectionTickets .ticket-detail{ grid-area: detail; min-height:0; overflow:auto; }
+.tickets-page #sectionTickets .table-wrap{ grid-area: list; min-height:0; overflow:auto; height:100%; max-height:none; width:100%; }
+.tickets-page #sectionTickets .ticket-detail{
+  grid-area: detail;
+  min-height:0;
+  overflow:auto;
+  margin-top:8px;
+  border-top:1px solid var(--card-border);
+  padding-top:8px;
+  overflow-x:hidden;
+}
 
 /* largura total na aba Chamados */
 .tickets-page .tickets{ grid-column: 1 / -1; }
@@ -147,15 +215,6 @@
 /* === Painel de detalhes com altura estável === */
 /* grade interna: header (auto), meta (auto), tabs (auto), painel (1fr) */
 /* --- Painel de detalhes com altura estável (SEM forçar display) --- */
-#ticketDetail{
-  /* REMOVA o display !important daqui */
-  /* display: grid !important;  <-- apague esta linha */
-  display: grid;               /* ok manter grid, mas sem !important */
-  grid-template-rows: auto auto auto 1fr;
-  gap: 8px;
-  margin-top: 0;
-}
-
 /* --- Visibilidade controlada por página --- */
 /* Esconde por padrão (inclusive vence inline style por causa do !important) */
 #sectionTickets .ticket-detail{ display:none !important; }
@@ -163,35 +222,71 @@
 /* Mostra só quando estiver na aba Chamados */
 .tickets-page #sectionTickets .ticket-detail{ display:grid !important; }
 
-/* o container de gráficos/notas/etc ocupa o 1fr e rola dentro */
-#ticketDetail .subtab-panel{
+/* === Detalhe: Descrição mais legível === */
+#tdDesc{
+  padding-top: 6px;
+}
+
+.td-desc{
+  background: #0b0f16;
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  padding: 12px;
+  display: grid;
+  gap: 10px;
+  white-space: pre-wrap;
+  line-height: 1.45;
+  color: var(--text);
+}
+
+.td-desc h4{
+  margin: 2px 0 4px;
+  font-size: 13px;
+  color: var(--muted);
+  letter-spacing: .2px;
+}
+
+.td-desc p{ margin:0; }
+.td-desc ul, .td-desc ol{ margin-left:18px; display:grid; gap:4px; }
+.td-desc .divider{
+  height:1px; background:var(--card-border);
+  margin:2px 0;
+}
+
+/* ===== Finished Projects page layout ===== */
+/* deixa a página 100% alta e a seção rolar por dentro */
+.finished-projects-page .content{
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow: hidden;
   min-height: 0;
-  height: 100%;
+}
+
+/* a seção ocupa o resto do painel e não corta conteúdo */
+.finished-projects-page #sectionFinishedProjects{
+  display: flex;      /* vira um container vertical */
+  flex: 1;            /* preenche a altura */
+  min-height: 0;      /* permite overflow interno */
+  overflow: hidden;   /* quem rola é a .table-wrap */
+  grid-column: 1 / -1;
+}
+
+/* tabela rola sem “cortar” nada */
+.finished-projects-page #sectionFinishedProjects .table-wrap{
+  flex: 1;
+  min-height: 0;
   overflow: auto;
+  max-height: none;   /* remove teto que podia cortar */
 }
 
-/* (opcional) deixa os botões de subtab mais firmes e sem pular layout */
-#ticketDetail .subtabs{
-  display:flex; gap:8px;
-  border-bottom:1px solid var(--card-border);
-  padding-bottom: 0;
-}
-#ticketDetail .subtabs .subtab{
-  background:transparent; border:1px solid var(--card-border); border-bottom:0;
-  padding:8px 12px; border-top-left-radius:10px; border-top-right-radius:10px; cursor:pointer; color:var(--text);
-}
-#ticketDetail .subtabs .subtab.active{
-  box-shadow: 0 -2px 0 var(--brand) inset;
-  border-color: rgba(122,162,255,.6);
+/* em mobile, manter rolagem horizontal se precisar */
+@media (max-width: 600px){
+  .finished-projects-page #sectionFinishedProjects .table{
+    min-width: 600px;
+  }
 }
 
-/* Oculta o detalhe por padrão */
-#sectionTickets .ticket-detail{ display:none; }
-
-/* Só mostra o detalhe quando a aba Chamados estiver ativa */
-.tickets-page #sectionTickets .ticket-detail{
-  display:grid !important; /* grid p/ manter o layout do header/meta/tabs */
-}
 /* Topo da dashboard */
 .top {
   display: flex;
@@ -204,19 +299,7 @@
   gap: 8px;
 }
 
-/* Botão TV */
-.tv-mode-btn {
-  background: #12161e;
-  border: 1px solid var(--card-border);
-  color: var(--text);
-  padding: 6px 10px;
-  border-radius: 8px;
-  cursor: pointer;
-  margin-right: 8px;
-}
-.tv-mode-btn:hover {
-  border-color: rgba(122,162,255,.45);
-}
+.top-actions .btn + .btn{ margin-left:6px; }
 
 /* Layout em tela cheia (modo TV) */
 body.tv-mode .sidebar {
@@ -336,17 +419,29 @@ body.tv-mode .section{
   overflow-x: hidden;  /* mata qualquer transbordo horizontal */
 }
 
-/* Botões de edição e exclusão */
-.edit-btn, .del-btn{
-  background:#12161e;
-  border:1px solid var(--card-border);
-  color:var(--text);
-  padding:4px 8px;
-  border-radius:8px;
-  cursor:pointer;
-  font-size:12px;
+/* === Botões utilitários (harmonizados) === */
+.btn{ background:#141820; color:var(--text); border:1px solid var(--card-border); padding: 10px 12px; border-radius:10px; cursor:pointer; transition: transform var(--transition), border-color var(--transition), background var(--transition), opacity var(--transition); font-size:13px; line-height:1; }
+.btn:hover{ transform: translateY(-1px); border-color: rgba(122,162,255,.45); }
+.btn:disabled{ opacity:.6; cursor:not-allowed; }
+
+.btn-primary{ background: linear-gradient(180deg, var(--brand), var(--brand-strong)); border-color: transparent; color:#fff; font-weight:600; }
+.btn-outline{ background:#12161e; border:1px solid var(--card-border); color:var(--text); }
+.btn-ghost{ background: transparent; border:1px dashed rgba(255,255,255,.18); color:#cbd5e1; }
+.btn-danger{ background:#161218; border:1px solid rgba(255,69,58,.45); color:#fecaca; }
+.btn-danger:hover{ border-color: rgba(255,69,58,.7); }
+
+.btn-sm{ padding:6px 10px; font-size:12px; border-radius:8px; }
+
+.actions-cell{
+  display:flex;
+  align-items:center;
+  gap: 6px;
+  flex-wrap: wrap;
 }
-.del-btn:hover{ border-color:rgba(255,69,58,.6); }
+
+/* compatibilidade com nomes antigos */
+.edit-btn{ composes: btn btn-outline btn-sm; }
+.del-btn{ composes: btn btn-danger btn-sm; }
 
 /* Formulário de edição de chamado */
 .edit-form{ display:grid; gap:8px; max-width:420px; }
@@ -360,15 +455,6 @@ body.tv-mode .section{
 }
 .edit-form textarea{ min-height:80px; resize:vertical; }
 .edit-form .actions{ display:flex; gap:8px; margin-top:8px; }
-.save-btn{
-  background:linear-gradient(180deg,var(--brand),var(--brand-strong));
-  border:0;
-  color:#fff;
-  padding:6px 12px;
-  border-radius:8px;
-  cursor:pointer;
-  font-size:12px;
-}
 
 /* Ajuste de larguras no modo TV */
 .tv-mode .tickets{ grid-column: span 5; }
@@ -379,18 +465,22 @@ body.tv-mode .section{
 
 /* ----- Tickets como cartões no mobile ----- */
 @media (max-width: 600px){
+  #ticketsWrap{ overflow-x:hidden; }
+  #ticketsTable{ min-width:100%; }
   #ticketsTable thead{ display:none }
   #ticketsTable, #ticketsTable tbody, #ticketsTable tr, #ticketsTable td{ display:block; width:100% }
   #ticketsTable tr{ background:#0f131a; border:1px solid var(--card-border); border-radius:10px; padding:8px; margin-bottom:8px }
-  #ticketsTable td{ border:none; padding:4px 0; display:flex; justify-content:space-between; gap:8px; font-size:13px }
-  #ticketsTable td::before{ content:attr(data-label); font-weight:600; color:var(--muted) }
+  #ticketsTable td{ border:none; padding:4px 0; font-size:13px }
+  #ticketsTable td::before{ content:attr(data-label); font-weight:600; color:var(--muted); display:block; margin-bottom:4px; }
   #ticketsTable td .prog{ width:100% }
+  #ticketsTable td .progress{ width:100%; }
 }
 /* Criar chamado ocupa a largura toda */
 #sectionCreateTicket{ grid-column: 1 / -1; }
 
 /* Grid do form (desktop) */
-#sectionCreateTicket .edit-form{
+#sectionCreateTicket .edit-form,
+#sectionCreateProject .edit-form{
   max-width: none;
   width: 100%;
   display: grid;
@@ -400,26 +490,31 @@ body.tv-mode .section{
 
 /* Inputs sempre com largura visível */
 #sectionCreateTicket .edit-form input,
-#sectionCreateTicket .edit-form textarea{
+#sectionCreateTicket .edit-form textarea,
+#sectionCreateProject .edit-form input,
+#sectionCreateProject .edit-form textarea{
   width: 100%;
   display: block;
   border-color: rgba(255,255,255,.18); /* um pouco mais visível */
 }
 
 /* Botões no fim ocupando a linha inteira */
-#sectionCreateTicket .edit-form .actions{
+#sectionCreateTicket .edit-form .actions,
+#sectionCreateProject .edit-form .actions{
   grid-column: 1 / -1;
   display: flex;
   gap: 8px;
 }
 
 @media (max-width: 900px){
-  #sectionCreateTicket .edit-form{
+  #sectionCreateTicket .edit-form,
+  #sectionCreateProject .edit-form{
     grid-template-columns: 1fr;
   }
 }
 /* === Criar/Editar: layout premium === */
-#sectionCreateTicket{ grid-column: 1 / -1; }
+#sectionCreateTicket,
+#sectionCreateProject{ grid-column: 1 / -1; }
 
 .edit-form{
   width: 100%;
@@ -481,28 +576,84 @@ body.tv-mode .section{
 @media (max-width: 900px){
   .edit-form .field{ grid-column: 1 / -1; }
 }
-/* === Scrollbar custom no content e no Criar Chamado === */
+/* === Scrollbar custom no content e em telas de administração === */
 .content.panel,
 #sectionCreateTicket,
-#sectionCreateTicket .edit-form {
+#sectionCreateTicket .edit-form,
+#sectionCreateProject,
+#sectionCreateProject .edit-form {
   scrollbar-width: thin;
   scrollbar-color: rgba(122,162,255,.5) rgba(255,255,255,.06);
 }
 .content.panel::-webkit-scrollbar,
 #sectionCreateTicket::-webkit-scrollbar,
-#sectionCreateTicket .edit-form::-webkit-scrollbar{
+#sectionCreateTicket .edit-form::-webkit-scrollbar,
+#sectionCreateProject::-webkit-scrollbar,
+#sectionCreateProject .edit-form::-webkit-scrollbar{
   width: 10px;
 }
 .content.panel::-webkit-scrollbar-track,
 #sectionCreateTicket::-webkit-scrollbar-track,
-#sectionCreateTicket .edit-form::-webkit-scrollbar-track{
+#sectionCreateTicket .edit-form::-webkit-scrollbar-track,
+#sectionCreateProject::-webkit-scrollbar-track,
+#sectionCreateProject .edit-form::-webkit-scrollbar-track{
   background: rgba(255,255,255,.06);
   border-radius: 10px;
 }
 .content.panel::-webkit-scrollbar-thumb,
 #sectionCreateTicket::-webkit-scrollbar-thumb,
-#sectionCreateTicket .edit-form::-webkit-scrollbar-thumb{
+#sectionCreateTicket .edit-form::-webkit-scrollbar-thumb,
+#sectionCreateProject::-webkit-scrollbar-thumb,
+#sectionCreateProject .edit-form::-webkit-scrollbar-thumb{
   background: linear-gradient(180deg, var(--brand), var(--brand-strong));
   border-radius: 10px;
   border: 2px solid rgba(255,255,255,.06);
+}
+
+/* ====== CREATE PAGES: faz a seção preencher o painel ====== */
+.create-page .content{
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* as seções de criação ocupam todo o espaço disponível */
+.create-page #sectionCreateTicket,
+.create-page #sectionCreateProject{
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* o formulário rola por dentro do bloco #10141c */
+.create-page #sectionCreateTicket .edit-form,
+.create-page #sectionCreateProject .edit-form{
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+/* garante que filhos possam rolar (você já tem, mas reforço) */
+.content.panel{ min-height: 0; }
+
+
+
+/* Harden mobile scrolling em áreas profundas */
+.content.panel { min-height: 0; }
+
+/* ==== PATCH v2 (mobile): charts compactos ==== */
+@media (max-width: 700px){
+  .charts{ grid-column: 1 / -1; }
+  #sectionCharts{ display: grid; grid-template-columns: 1fr; gap: 8px; overflow: hidden; }
+  #sectionCharts .chart{ padding: 8px; }
+  .svg-wrap{ height: 96px; }
+  .legend{ flex-wrap: wrap; row-gap: 4px; }
+}
+
+/* Tickets ocupando 100% da largura no mobile */
+@media (max-width: 900px){
+  .tickets{ grid-column: 1 / -1; }
 }

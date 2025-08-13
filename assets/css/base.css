@@ -1,3 +1,112 @@
+/* ==========================================================================
+   Telemix CSS — base.css (Reset, Base e Utilitários)
+   ========================================================================== */
+
+/**
+ * Escopo
+ * ------
+ * 1) Reset compacto e base tipográfica
+ * 2) Utilitários globais (.hidden, .fade-out, etc.)
+ * 3) Componentes atômicos (botões, badges, progress)
+ * 4) Cenário visual (glow + marcas d'água)
+ * 5) Media queries essenciais
+ *
+ * Observações
+ * -----------
+ * - Evite sobrescrever .btn nos arquivos de página; ajuste variantes aqui.
+ * - Prefira compor utilitários (p.ex.: .btn.btn-sm) ao invés de duplicar CSS.
+ */
+
+/* === 1) Reset & base === */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial;
+  color: var(--text);
+  background: radial-gradient(80vw 80vh at 10% 10%, #0d1220 0%, var(--bg) 45%, #07080b 100%);
+  display: grid;
+  place-items: center;
+  overflow: hidden; /* Mobile ajusta para auto em media query */
+}
+
+/* Acessibilidade: reduz animações para quem prefere menos movimento */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+
+/* === 2) Cenário visual === */
+.glow {
+  position: fixed; inset: -20% -20% auto auto; width: 60vw; height: 60vw;
+  background: radial-gradient(closest-side at 40% 40%, rgba(94,129,255,.12), rgba(0,0,0,0));
+  filter: blur(40px); pointer-events: none; z-index: 0;
+  animation: float 12s ease-in-out infinite alternate;
+}
+@keyframes float { from { transform: translateY(0) } to { transform: translateY(30px) } }
+
+/* === 3) Utilitários === */
+.hidden { display: none !important; }
+.fade-out { opacity: 0; transform: translateY(-6px); pointer-events: none; }
+
+/* === 4) Componentes atômicos === */
+.btn {
+  background: #141820; color: var(--text); border: 1px solid var(--card-border);
+  padding: 12px 16px; border-radius: 12px; cursor: pointer;
+  transition: transform var(--transition), border-color var(--transition), background var(--transition), opacity var(--transition);
+  font-size: 14px; line-height: 1;
+}
+.btn:hover { transform: translateY(-1px); border-color: rgba(122,162,255,.45); }
+.btn:disabled { opacity: .6; cursor: not-allowed; }
+.btn-primary { background: linear-gradient(180deg, var(--brand), var(--brand-strong)); border-color: transparent; color: #fff; font-weight: 600; }
+.btn-outline { background: #12161e; border: 1px solid var(--card-border); color: var(--text); }
+.btn-ghost { background: transparent; border: 1px dashed rgba(255,255,255,.18); color: #cbd5e1; }
+.btn-danger { background:#161218; border:1px solid rgba(255,69,58,.45); color:#fecaca; }
+.btn-danger:hover { border-color: rgba(255,69,58,.7); }
+.btn-sm { padding: 6px 10px; font-size: 12px; border-radius: 8px; }
+.badge { font-size: 12px; padding: 4px 8px; border-radius: 999px; border: 1px solid var(--card-border); color: #cbd5e1; }
+
+/* Barras de progresso (padrão) */
+.progress { height: 8px; background:#0f131a; border:1px solid var(--card-border); border-radius:8px; overflow:hidden; }
+.progress > i { display:block; height:100%; background: linear-gradient(180deg, var(--brand), var(--brand-strong)); width:0%; }
+
+/* === 5) Ajustes responsivos gerais (small screens) === */
+@media (max-width: 900px) {
+  body { display: block; place-items: initial; overflow: auto; padding-bottom: calc(8px + var(--safe-bottom)); }
+  .glow { display: none; }
+}
+
+/* === 6) Marcas d'água (EMD/Telemix) === */
+body::before {
+  content: "";
+  position: fixed; inset: 0;
+  pointer-events: none; z-index: 0;
+  background:
+    url("../img/emd.png") left max(2%, 40px) center / clamp(200px, 22vw, 520px) auto no-repeat,
+    url("../img/telemix.png") right max(2%, 40px) center / clamp(200px, 24vw, 540px) auto no-repeat;
+  opacity: 0.08; filter: saturate(0.9) blur(0.2px);
+  animation: float 12s ease-in-out infinite alternate;
+}
+
+@media (max-aspect-ratio: 16/9) {
+  body::before {
+    background:
+      url("../img/emd.png") left max(1%, 24px) 40% / clamp(180px, 20vw, 440px) auto no-repeat,
+      url("../img/telemix.png") right max(1%, 24px) 40% / clamp(180px, 22vw, 460px) auto no-repeat;
+    opacity: 0.07;
+  }
+}
+
+@media (max-width: 900px) {
+  body::before {
+    background:
+      url("../img/emd.png") left 4% top 18% / clamp(140px, 36vw, 400px) auto no-repeat,
+      url("../img/telemix.png") right 4% bottom 16% / clamp(140px, 38vw, 420px) auto no-repeat;
+    opacity: 0.06;
+  }
+}
+
+/* === [Preservado] Regras originais (mantidas para compatibilidade) === */
+/* (Nota: as definições acima já organizam os blocos; abaixo ficam as
+   regras que já existiam, para garantir 100% de compat.) */
 /* Reset e utilitários globais */
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%}
@@ -32,3 +141,43 @@ body{
   }
   .glow{display:none}
 }
+body::before{
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+
+  background:
+    /* EMD à esquerda */
+    url("../img/emd.png") left max(2%, 40px) center / clamp(200px, 22vw, 520px) auto no-repeat,
+    /* Telemix à direita */
+    url("../img/telemix.png") right max(2%, 40px) center / clamp(200px, 24vw, 540px) auto no-repeat;
+
+  opacity: 0.08;
+  filter: saturate(0.9) blur(0.2px);
+  animation: float 12s ease-in-out infinite alternate;
+}
+
+/* Ajuste para 16:9 e proporções menores */
+@media (max-aspect-ratio: 16/9){
+  body::before{
+    background:
+      url("../img/emd.png") left max(1%, 24px) 40% / clamp(180px, 20vw, 440px) auto no-repeat,
+      url("../img/telemix.png") right max(1%, 24px) 40% / clamp(180px, 22vw, 460px) auto no-repeat;
+    opacity: 0.07;
+  }
+}
+
+/* Ajustes para telas pequenas */
+@media (max-width: 900px){
+  body::before{
+    background:
+      url("../img/emd.png") left 4% top 18% / clamp(140px, 36vw, 400px) auto no-repeat,
+      url("../img/telemix.png") right 4% bottom 16% / clamp(140px, 38vw, 420px) auto no-repeat;
+    opacity: 0.06;
+  }
+}
+
+
+/* === Fim de base.css === */
