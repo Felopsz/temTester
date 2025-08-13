@@ -1,5 +1,23 @@
-/* Variáveis globais de tema */
+/* ==========================================================================
+   Telemix CSS — variables.css (Design Tokens)
+   ========================================================================== */
+
+/**
+ * Objetivo
+ * --------
+ * Centraliza os tokens de design usados no app: cores, sombras, raios,
+ * tempos de transição e (agora) *breakpoints* e *safe-area* para mobile.
+ *
+ * Regras
+ * ------
+ * - Nunca referencie valores "mágicos" direto no CSS; use os tokens abaixo.
+ * - Precisa de um tom novo? Adicione aqui e documente.
+ * - Safe areas (iOS/Android) são expostas via env(); usamos variáveis
+ *   auxiliares para padronizar o uso.
+ */
+
 :root{
+  /* === Cores === */
   --bg: #0b0d10;
   --surface: rgba(255,255,255,0.04);
   --card-border: rgba(255,255,255,0.12);
@@ -7,8 +25,31 @@
   --muted: #9aa0a6;
   --brand: #7aa2ff;
   --brand-strong: #5a86ff;
+
+  /* === Sombras / Raios / Motion === */
   --shadow: 0 10px 35px rgba(0,0,0,.5);
   --radius: 18px;
   --blur: 16px;
   --transition: 260ms cubic-bezier(.2,.8,.2,1);
+
+  /* === Z-layers (não são obrigatórios, mas ajudam a padronizar) === */
+  --z-base: 0;
+  --z-fg: 1;
+  --z-overlay: 10;
+  --z-sticky: 20;
+  --z-modal: 30;
+  --z-max: 999;
+
+  /* === Breakpoints (como variáveis) === */
+  --bp-lg: 1200px;
+  --bp-md: 900px;
+  --bp-sm: 600px;
+
+  /* === Safe areas (para devices com notch) === */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
 }
+
+/* Fallbacks e utilidades opcionais podem ser estendidos aqui. */
