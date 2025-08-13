@@ -128,6 +128,10 @@ body.is-mobile{ padding-bottom:0; }
 /* Tickets block: no horizontal scroll */
 .is-mobile #ticketsWrap{ overflow-x:hidden; }
 .is-mobile #ticketsTable{ width:100%; min-width:0; }
+/* garantia de largura total na página de chamados */
+.is-mobile.tickets-page #sectionTickets,
+.is-mobile.tickets-page #sectionTickets .table-wrap,
+.is-mobile.tickets-page #sectionTickets .table{ width:100%; }
 
 /* Detalhes de chamado/projeto sem overflow lateral */
 .is-mobile .ticket-detail,
@@ -136,12 +140,21 @@ body.is-mobile{ padding-bottom:0; }
   width:100%;
 }
 
-/* Subtabs em múltiplas linhas no mobile */
+/* Subtabs menores com rolagem horizontal */
 .is-mobile .ticket-detail .subtabs,
 .is-mobile .project-detail-inline .subtabs{
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  gap:6px;
 }
 .is-mobile .ticket-detail .subtabs .subtab,
 .is-mobile .project-detail-inline .subtabs .subtab{
-  flex:1 1 calc(50% - 8px);
+  flex:0 0 auto;
+  font-size:12px;
+  padding:6px 10px;
 }
+
+/* esconde o logo da sidebar no mobile */
+.is-mobile .sidebar .logo-row{ display:none; }
+.is-mobile .sidebar{ padding-top:56px; }

@@ -105,6 +105,19 @@
       if (els.clock) els.clock.textContent = `${dias[d.getDay()]} • ${d.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})}`;
     }
 
+    function enableSwipeScroll(el){
+      if(!el) return;
+      let startX = 0;
+      let scrollLeft = 0;
+      el.addEventListener('touchstart', e=>{
+        startX = e.touches[0].pageX;
+        scrollLeft = el.scrollLeft;
+      });
+      el.addEventListener('touchmove', e=>{
+        el.scrollLeft = scrollLeft - (e.touches[0].pageX - startX);
+      });
+    }
+
     const UI = {
       setActiveTab(which){
         [els.tabOverview, els.tabTickets, els.tabProjects].forEach(b=> b?.classList.remove('active'));
@@ -831,6 +844,8 @@
         const firstPanel = qs('#tdDesc', els.ticketDetail);
         if (first) first.classList.add('active');
         if (firstPanel){ firstPanel.classList.add('active'); firstPanel.style.display=''; }
+
+        enableSwipeScroll(qs('.subtabs', els.ticketDetail));
       },
 
       async addTicketNote(t, text){
@@ -1076,6 +1091,8 @@
           const panel = detail.querySelector('#'+tab);
           if(panel){ panel.classList.add('active'); panel.style.display=''; }
         });
+
+        enableSwipeScroll(detail?.querySelector('.subtabs'));
       },
     };
 
