@@ -126,3 +126,9 @@
 /* Tickets block: no horizontal scroll */
 .is-mobile #ticketsWrap{ overflow-x:hidden; }
 .is-mobile #ticketsTable{ min-width:100%; }
+
+/* Detalhes de chamado/projeto sem overflow lateral */
+.is-mobile .ticket-detail,
+.is-mobile .project-detail-inline{
+  overflow-x:hidden;
+}

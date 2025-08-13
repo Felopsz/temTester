@@ -28,7 +28,7 @@
 
 .top{ grid-column: 2; height:64px; display:flex; align-items:center; justify-content:space-between; padding:0 16px; }
 .brand-inline{ display:flex; align-items:center; gap:10px; }
-.hamburger{ display:none; background:transparent; border:1px solid var(--card-border); border-radius:10px; padding:8px 10px; color:var(--text); cursor:pointer; }
+.hamburger{ display:none; background:rgba(0,0,0,.3); border:1px solid var(--card-border); border-radius:10px; padding:8px 10px; color:var(--text); cursor:pointer; }
 .pill{ padding:6px 10px; border-radius:999px; border:1px solid var(--card-border); color:var(--muted); font-size:12px }
 .logout{ background:transparent; border:1px solid var(--card-border); color:var(--text); padding:8px 12px; border-radius:10px; cursor:pointer; transition:all var(--transition) }
 .logout:hover{ border-color:rgba(255,69,58,.6) }

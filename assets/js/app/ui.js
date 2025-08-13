@@ -77,6 +77,10 @@
     adminMenuOpen = adminMenu?.classList.contains('open') || adminMenuOpen;
     APP.state.adminMenuOpen = adminMenuOpen;
 
+    const closeSidebar = ()=>{
+      if(APP.state.IS_MOBILE) els.sidebar?.classList.remove('open');
+    };
+
     // Oculta itens de admin para usuários comuns
     if (window.CURRENT_ROLE !== 'admin') {
       if (els.tabConfig) els.tabConfig.style.display = 'none';
@@ -1090,7 +1094,7 @@
     els.caroNext?.addEventListener('click', ()=> UI.scrollProjects(1));
     els.projectsCarousel?.addEventListener('scroll', ()=> UI.updateProjectArrows());
 
-    els.tabOverview?.addEventListener('click', ()=> UI.setActiveTab('overview'));
+    els.tabOverview?.addEventListener('click', ()=>{ UI.setActiveTab('overview'); closeSidebar(); });
     els.tabTickets?.addEventListener('click', ()=> {
       UI.setActiveTab('tickets');
       const firstTicket = DB.state.tickets?.[0];
@@ -1101,6 +1105,7 @@
         const det = document.getElementById('ticketDetail');
         if (det) det.style.display = 'none';
       }
+      closeSidebar();
     });
     els.tabProjects?.addEventListener('click', ()=> {
       const first = DB.state.projects?.[0];
@@ -1112,6 +1117,7 @@
       } else {
         UI.setActiveTab('projects');
       }
+      closeSidebar();
     });
     els.tabAdmin?.addEventListener('click', (e)=> {
       e.stopPropagation();
@@ -1124,26 +1130,31 @@
       e.stopPropagation();
       UI.showCreateTicket();
       adminMenu?.classList.toggle('open', adminMenuOpen);
+      closeSidebar();
     });
     els.btnAdminCreateProject?.addEventListener('click', (e)=>{
       e.stopPropagation();
       UI.showCreateProject();
       adminMenu?.classList.toggle('open', adminMenuOpen);
+      closeSidebar();
     });
     els.btnAdminArchivedTickets?.addEventListener('click', (e)=>{
       e.stopPropagation();
       UI.showArchivedTickets();
       adminMenu?.classList.toggle('open', adminMenuOpen);
+      closeSidebar();
     });
     els.btnAdminFinishedTickets?.addEventListener('click', (e)=>{
       e.stopPropagation();
       UI.showFinishedTickets();
       adminMenu?.classList.toggle('open', adminMenuOpen);
+      closeSidebar();
     });
     els.btnAdminArchivedProjects?.addEventListener('click', (e)=>{
       e.stopPropagation();
       UI.showArchivedProjects();
       adminMenu?.classList.toggle('open', adminMenuOpen);
+      closeSidebar();
     });
     els.btnAdminFinishedProjects?.addEventListener('click', (e)=>{
       e.stopPropagation();
@@ -1155,6 +1166,7 @@
       if (els.sectionPill) els.sectionPill.textContent = 'Projetos finalizados';
       UI.renderFinishedProjects();
       adminMenu?.classList.toggle('open', adminMenuOpen);
+      closeSidebar();
     });
 
     if (APP.state.IS_MOBILE){

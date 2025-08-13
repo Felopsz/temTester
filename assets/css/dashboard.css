@@ -123,11 +123,46 @@
 .ticket-detail,
 .project-detail-inline{
   background:#0f131a; border:1px solid var(--card-border);
-  border-radius:12px; padding:12px; margin-top:8px;
+  border-radius:12px; padding:12px;
+  display:grid;
+  grid-template-rows:auto auto auto 1fr;
+  gap:8px;
+  min-height:0;
 }
 
-/* Subtab ativa */
-.subtabs .subtab.active{
+.ticket-detail{ margin-top:0 !important; }
+.project-detail-inline{ margin-top:8px; }
+
+/* subtabs genéricas */
+.ticket-detail .subtab-panel,
+.project-detail-inline .subtab-panel{
+  min-height:0;
+  height:100%;
+  overflow:auto;
+}
+
+.ticket-detail .subtabs,
+.project-detail-inline .subtabs{
+  display:flex;
+  gap:8px;
+  border-bottom:1px solid var(--card-border);
+  padding-bottom:0;
+}
+
+.ticket-detail .subtabs .subtab,
+.project-detail-inline .subtabs .subtab{
+  background:transparent;
+  border:1px solid var(--card-border);
+  border-bottom:0;
+  padding:8px 12px;
+  border-top-left-radius:10px;
+  border-top-right-radius:10px;
+  cursor:pointer;
+  color:var(--text);
+}
+
+.ticket-detail .subtabs .subtab.active,
+.project-detail-inline .subtabs .subtab.active{
   box-shadow: 0 -2px 0 var(--brand) inset;
   border-color: rgba(122,162,255,.6);
 }
@@ -171,51 +206,12 @@
 /* === Painel de detalhes com altura estável === */
 /* grade interna: header (auto), meta (auto), tabs (auto), painel (1fr) */
 /* --- Painel de detalhes com altura estável (SEM forçar display) --- */
-#ticketDetail{
-  /* REMOVA o display !important daqui */
-  /* display: grid !important;  <-- apague esta linha */
-  display: grid;               /* ok manter grid, mas sem !important */
-  grid-template-rows: auto auto auto 1fr;
-  gap: 8px;
-  margin-top: 0;
-}
-
 /* --- Visibilidade controlada por página --- */
 /* Esconde por padrão (inclusive vence inline style por causa do !important) */
 #sectionTickets .ticket-detail{ display:none !important; }
 
 /* Mostra só quando estiver na aba Chamados */
 .tickets-page #sectionTickets .ticket-detail{ display:grid !important; }
-
-/* o container de gráficos/notas/etc ocupa o 1fr e rola dentro */
-#ticketDetail .subtab-panel{
-  min-height: 0;
-  height: 100%;
-  overflow: auto;
-}
-
-/* (opcional) deixa os botões de subtab mais firmes e sem pular layout */
-#ticketDetail .subtabs{
-  display:flex; gap:8px;
-  border-bottom:1px solid var(--card-border);
-  padding-bottom: 0;
-}
-#ticketDetail .subtabs .subtab{
-  background:transparent; border:1px solid var(--card-border); border-bottom:0;
-  padding:8px 12px; border-top-left-radius:10px; border-top-right-radius:10px; cursor:pointer; color:var(--text);
-}
-#ticketDetail .subtabs .subtab.active{
-  box-shadow: 0 -2px 0 var(--brand) inset;
-  border-color: rgba(122,162,255,.6);
-}
-
-/* Oculta o detalhe por padrão */
-#sectionTickets .ticket-detail{ display:none; }
-
-/* Só mostra o detalhe quando a aba Chamados estiver ativa */
-.tickets-page #sectionTickets .ticket-detail{
-  display:grid !important; /* grid p/ manter o layout do header/meta/tabs */
-}
 
 /* === Detalhe: Descrição mais legível === */
 #tdDesc{
