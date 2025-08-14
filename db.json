@@ -1,11 +1,9 @@
 {
   "users": {
     "admin": {
-      "password": "1234",
       "role": "admin"
     },
     "filipe": {
-      "password": "1234",
       "role": "user"
     }
   },

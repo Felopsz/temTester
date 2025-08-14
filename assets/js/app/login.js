@@ -29,11 +29,27 @@
         user.value=''; pass.value=''; enableContinueIfFilled();
       }, 200);
     };
-    const goToDashboard = () => {
+    const goToDashboard = async (data) => {
       viewLogin.style.display = 'none';
       viewDash.style.display = 'block';
+      if(data) await DB.load(data);
       APP.dashboard.init();
     };
+
+    async function bootSession(){
+      try{
+        const me = await fetch('/me', {credentials:'include'});
+        if(me.ok){
+          const db = await fetch('/api/db',{credentials:'include'}).then(r=>r.json());
+          const info = await me.json();
+          window.CURRENT_USER = info.user.email;
+          window.CURRENT_ROLE = db.users?.[window.CURRENT_USER]?.role;
+          await goToDashboard(db);
+        }else{
+          viewLogin.style.display='';
+        }
+      }catch(e){ viewLogin.style.display=''; }
+    }
 
     btnLogin?.addEventListener('click', () => {
       btnCreate.classList.add('fade-out');
@@ -53,19 +69,24 @@
       if (btnContinue.disabled) return;
       const u = user.value.trim();
       const p = pass.value;
-      const res = await fetch('/api/db');
-      const data = await res.json();
-      const account = data.users?.[u];
-      if (account && account.password === p) {
+      const r = await fetch('/auth/login', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        credentials:'include',
+        body: JSON.stringify({ email:u, password:p })
+      });
+      if (r.ok) {
+        const db = await fetch('/api/db',{credentials:'include'}).then(r=>r.json());
         window.CURRENT_USER = u;
-        window.CURRENT_ROLE = account.role;
-        await DB.load(data);
-        goToDashboard();
+        window.CURRENT_ROLE = db.users?.[u]?.role;
+        await goToDashboard(db);
       } else {
         alert('Usuário ou senha inválidos.');
         pass.select();
       }
     });
+
+    bootSession();
   }
 
   APP.login = { bindLogin };

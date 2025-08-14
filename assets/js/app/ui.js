@@ -1105,7 +1105,10 @@
     els.btnTV?.addEventListener('click', APP.tv.toggleTVMode);
 
     // ====== listeners globais (blindados) ======
-    els.btnLogout?.addEventListener('click', ()=>{ location.reload(); });
+    els.btnLogout?.addEventListener('click', async ()=>{
+      await fetch('/auth/logout',{method:'POST',credentials:'include'});
+      location.reload();
+    });
     els.btnHamb?.addEventListener('click', ()=> els.sidebar?.classList.toggle('open'));
     els.sidebar?.addEventListener('click', ev=>{
       if(ev.target === els.sidebar) closeSidebar();
