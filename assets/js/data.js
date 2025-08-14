@@ -27,6 +27,7 @@ const DB = {
     tickets: [],
     projects: [],
     materialsByProject: {},
+    rdosByProject: {},
     rdosByTicket: {},
     historyByTicket: {},
     users: {},
@@ -37,6 +38,7 @@ const DB = {
     this.state.tickets = Object.entries(data.tickets || {}).map(([id, t])=>({id, ...t}));
     this.state.projects = Object.entries(data.projects || {}).map(([id, p])=>({id, ...p}));
     this.state.materialsByProject = data.materialsByProject || {};
+    this.state.rdosByProject = data.rdosByProject || {};
     this.state.rdosByTicket = data.rdosByTicket || {};
     this.state.users = data.users || {};
     this.state.historyByTicket = {};
