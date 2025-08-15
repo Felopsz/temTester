@@ -10,7 +10,9 @@ function deepMerge(target, source) {
   if (typeof source !== 'object' || source === null) return target;
   for (const key of Object.keys(source)) {
     const srcVal = source[key];
-    if (srcVal && typeof srcVal === 'object' && !Array.isArray(srcVal)) {
+    if (srcVal === null) {
+      delete target[key];
+    } else if (typeof srcVal === 'object' && !Array.isArray(srcVal)) {
       target[key] = deepMerge(target[key] || {}, srcVal);
     } else {
       target[key] = srcVal;
