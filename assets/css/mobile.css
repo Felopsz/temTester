@@ -158,3 +158,19 @@ body.is-mobile{ padding-bottom:0; }
 /* esconde o logo da sidebar no mobile */
 .is-mobile .sidebar .logo-row{ display:none; }
 .is-mobile .sidebar{ padding-top:56px; }
+
+/* Tickets & Projects pages: stable flex layout without double scroll */
+.is-mobile.tickets-page .content.panel,
+.is-mobile.projects-page .content.panel{
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+}
+
+/* Projects carousel: cards adapt to viewport width */
+.is-mobile #sectionProjects .project{
+  flex:0 0 100%;
+  max-width:100%;
+  scroll-snap-align:start;
+}
+
