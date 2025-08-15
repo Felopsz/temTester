@@ -145,6 +145,9 @@
         }
 
         if (which === 'tickets') {
+          if (APP.state.IS_MOBILE) {
+            this.renderTicketsSummary();
+          }
           els.tabTickets?.classList.add('active');
           if (els.sectionPill) els.sectionPill.textContent = 'Chamados';
           show('#sectionTickets');
@@ -288,7 +291,38 @@
           const firstCard = els.projectsCarousel.querySelector('.project');
           firstCard?.classList.add('selected');
         }
-      },
+      }
+      ,
+      renderTicketsSummary(){
+        const section = document.querySelector('#sectionTickets');
+        if (!section) return;
+        // Remove any previous summary to avoid duplicates
+        const oldSummary = document.querySelector('#ticketsSummaryBlock');
+        if (oldSummary) oldSummary.remove();
+        // Build summary block
+        const div = document.createElement('div');
+        div.className = 'section panel';
+        div.id = 'ticketsSummaryBlock';
+        div.style.marginBottom = '12px';
+        const openCount = DB.state.tickets.length;
+        const closedToday = DB.state.finishedTickets.filter(t => {
+          const today = new Date();
+          const d = new Date(t.createdAt);
+          return d.toDateString() === today.toDateString();
+        }).length;
+        div.innerHTML = `
+          <header style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+            <strong>Resumo de Chamados</strong>
+            <span class="badge">${openCount}</span>
+          </header>
+          <div style="color:var(--muted);font-size:13px">
+            <p>Total em aberto: <span>${openCount}</span></p>
+            <p>Finalizados hoje: <span>${closedToday}</span></p>
+          </div>
+        `;
+        section.prepend(div);
+      }
+,
 
       renderArchivedTickets(){
         if(!els.archivedTicketsBody) return;

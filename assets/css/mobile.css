@@ -173,3 +173,32 @@ body.is-mobile{ padding-bottom:0; }
   max-width:100%;
   scroll-snap-align:start;
 }
+
+
+/* ==========================================================================
+   PATCH: Ocultar "Chamados" no mobile (hambúrguer)
+   --------------------------------------------------------------------------
+   Regra: quando o body tiver .is-mobile e a página estiver em .tickets-page,
+   escondemos toda a área de conteúdo de chamados para que nada apareça.
+   Mantém o comportamento normal no desktop.
+   ========================================================================== */
+
+.is-mobile.tickets-page #sectionTickets,
+.is-mobile.tickets-page .tickets,
+.is-mobile.tickets-page .ticket-detail,
+.is-mobile.tickets-page #ticketsWrap,
+.is-mobile.tickets-page #ticketsTable,
+.is-mobile.tickets-page .table-wrap{
+  display: none !important;
+}
+
+/* Opcionalmente, para garantir que nenhum painel de conteúdo apareça nessa página */
+.is-mobile.tickets-page .content.panel{
+  display: none !important;
+}
+
+
+/* Exceção: permitir que o resumo de chamados apareça no mobile */
+.is-mobile.tickets-page #ticketsSummaryBlock {
+  display: block !important;
+}

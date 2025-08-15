@@ -76,17 +76,25 @@
       "obs": {}
     },
     "CH-1026": {
-      "createdAt": "2025-08-08T12:30:00",
+      "createdAt": "2025-08-08T12:30",
       "meetPoint": "Copacabana - Posto 5",
       "dupla": "Vivi & Dan",
-      "concl": 12,
-      "dueDate": "2025-08-14",
+      "concl": 30,
+      "dueDate": "2025-08-13",
       "resumo": "Inspeção de cabeamento.",
       "solicitante": "Fernanda B.",
       "telefone": "(21) 90000-1026",
       "descricao": "Inspeção de cabeamento em rede interna do cliente.",
       "notes": [],
-      "obs": {}
+      "obs": {},
+      "observacoes": [
+        {
+          "id": 1755272078360,
+          "texto": "[object Object]",
+          "autor": "—",
+          "criadoEm": "2025-08-15T15:34:38.360Z"
+        }
+      ]
     },
     "CH-1027": {
       "createdAt": "2025-08-08T13:05:00",
@@ -139,6 +147,25 @@
       "descricao": "Homologação final do link com validação de performance.",
       "notes": [],
       "obs": {}
+    },
+    "RITM4113332": {
+      "createdAt": "2025-08-05T12:36",
+      "solicitante": "Walter Freitas Goncalves",
+      "telefone": "31983910193",
+      "meetPoint": "F-02",
+      "dupla": "-",
+      "concl": 0,
+      "dueDate": "2025-09-02",
+      "resumo": "Instalação de um novo ponto de rede",
+      "descricao": "Instalação de 3 pontos de rede na nova sala da liderança prédio Bombeiros",
+      "observacoes": [
+        {
+          "id": 1755272490907,
+          "texto": "Sem atribuições",
+          "autor": "admin",
+          "criadoEm": "2025-08-15T15:41:30.907Z"
+        }
+      ]
     }
   },
   "archivedTickets": {},
