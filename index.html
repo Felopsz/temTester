@@ -5,12 +5,20 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Telemix — Login & Dashboard</title>
 
+  <!-- FAVICON / APP ICON -->
+  <link rel="icon" type="image/png" href="./assets/img/logo.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="./assets/img/logo.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="./assets/img/logo.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="./assets/img/logo.png">
+  <meta name="theme-color" content="#0d1220">
+
   <!-- CSS externos -->
   <link rel="stylesheet" href="./assets/css/variables.css">
   <link rel="stylesheet" href="./assets/css/base.css">
   <link rel="stylesheet" href="./assets/css/layout.css">
   <link rel="stylesheet" href="./assets/css/login.css">
   <link rel="stylesheet" href="./assets/css/dashboard.css">
+  <link rel="stylesheet" href="./assets/css/mobile.css">
 </head>
 <body>
   <div class="glow" aria-hidden="true"></div>
@@ -28,7 +36,7 @@
         <span class="clock" id="clock" style="margin-left:10px;color:#9aa0a6;font-size:12px"></span>
       </div>
       <div class="top-actions">
-        <button class="tv-mode-btn" id="btnTV" title="Modo TV">📺</button>
+        <button class="btn btn-outline" id="btnTV" title="Modo TV">TV</button>
         <button class="logout" id="btnLogout">Sair</button>
       </div>
     </header>
@@ -41,8 +49,15 @@
 
   <!-- JS da aplicação -->
   <script src="./assets/js/utils.js" defer></script>
+    <script src="./assets/js/app/shims.js" defer></script>
   <script src="./assets/js/data.js" defer></script>
   <script src="./assets/js/templates.js" defer></script>
-  <script src="./assets/js/app.js" defer></script>
+  <script src="./assets/js/app/state.js" defer></script>
+<script src="./assets/js/app/shell.js" defer></script>
+<script src="./assets/js/app/helpers.js" defer></script>
+<script src="./assets/js/app/tv.js" defer></script>
+<script src="./assets/js/app/ui.js" defer></script>
+<script src="./assets/js/app/login.js" defer></script>
+<script src="./assets/js/app/bootstrap.js" defer></script>
 </body>
 </html>

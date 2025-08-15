@@ -1,0 +1,175 @@
+/* ==========================================================================
+   Telemix CSS — mobile.css (Shell Mobile + Overlays + Nav)
+  ========================================================================== */
+
+/**
+ * Objetivo
+ * --------
+ * A camada mobile é explicitamente acionada pelo <body>.is-mobile
+ * (definido no JS por heurística + querystring/localStorage). Assim,
+ * o mesmo HTML serve desktop e mobile sem duplicar markup.
+ *
+ * Pontos chave
+ * ------------
+ * - Usa grid compacto (header / content / bottom-nav)
+ * - Evita sobreposição com bottom-nav via padding seguro (safe-area)
+ * - Converte tabelas para cartões em breakpoints pequenos (feito em dashboard.css)
+ */
+
+ /* ========== Shell Mobile ==========
+ (as regras originais seguem após os aprimoramentos) */
+
+body.is-mobile{ padding-bottom:0; }
+
+/* Viewport real em navegadores móveis modernos */
+.is-mobile .app {
+  min-height: 100dvh;
+  height: 100dvh;           /* fallback */
+  height: 100svh;           /* iOS 15+ */
+}
+
+/* Conteúdo com espaço para bottom-nav + safe-area */
+.is-mobile .content.panel {
+  padding-bottom: calc(56px + var(--safe-bottom));
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Bottom nav acima de tudo e com safe-area */
+.is-mobile .bottom-nav {
+  z-index: var(--z-sticky);
+  padding-bottom: calc(8px + var(--safe-bottom));
+}
+
+/* Touch: remove highlight azul em iOS / Android */
+.is-mobile * { -webkit-tap-highlight-color: transparent; }
+
+/* Admin submenu em overlay com z-index alto */
+.is-mobile .admin-subnav { z-index: var(--z-overlay); }
+
+/* ===== Regras originais (mantidas) ===== */
+/* ===== MOBILE SHELL ===== */
+.is-mobile .app{
+  width: 100vw; height: 100vh;
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: 56px 1fr 56px;
+  gap: 16px;
+  padding: 8px;
+}
+
+.is-mobile .top.panel{ border-radius: 10px; }
+.is-mobile .content.panel{
+  padding: 8px;
+  height: auto;
+  overflow: auto;
+}
+
+/* Seções mais compactas */
+.is-mobile .section{ border-radius: 10px; padding: 10px; }
+
+/* Esconde gráficos no mobile (caso o template desktop seja carregado por engano) */
+.is-mobile #sectionCharts{ display: none !important; }
+
+/* Bottom nav */
+.is-mobile .bottom-nav{
+  position: fixed; left: 8px; right: 8px; bottom: 8px;
+  display: flex; gap: 8px; justify-content: space-between;
+  background: var(--surface);
+  border: 1px solid var(--card-border);
+  border-radius: 12px; padding: 8px;
+}
+.is-mobile .bn-btn{
+  flex: 1;
+  padding: 10px 6px;
+  border-radius: 10px;
+  border: 1px solid var(--card-border);
+  background: #12161e;
+  color: var(--text);
+  font-size: 13px;
+}
+.is-mobile .bn-btn.active{
+  border-color: rgba(122,162,255,.6);
+  box-shadow: 0 0 0 4px rgba(122,162,255,.12) inset;
+}
+
+/* Tabelas em cartões (reforço do seu CSS responsivo) */
+.is-mobile #ticketsTable tr{ padding: 10px; }
+
+/* Admin submenu overlay */
+.is-mobile .admin-subnav{
+  position: fixed;
+  bottom: 72px;
+  left: 8px; right: 8px;
+  display: none;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--surface);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  padding: 8px;
+}
+.is-mobile .admin-subnav.open{ display: flex; }
+.is-mobile .admin-subnav .navbtn{
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid var(--card-border);
+  background: #12161e;
+  color: var(--text);
+  text-align: left;
+}
+
+/* ==== PATCH v2 (mobile shell): mata qualquer overflow-x no content ==== */
+.is-mobile .content.panel{ overflow-x: hidden; }
+
+/* TV button hidden on mobile */
+.is-mobile #btnTV{ display:none; }
+
+/* Tickets block: no horizontal scroll */
+.is-mobile #ticketsWrap{ overflow-x:hidden; }
+.is-mobile #ticketsTable{ width:100%; min-width:0; }
+/* garantia de largura total na página de chamados */
+.is-mobile.tickets-page #sectionTickets,
+.is-mobile.tickets-page #sectionTickets .table-wrap,
+.is-mobile.tickets-page #sectionTickets .table{ width:100%; }
+
+/* Detalhes de chamado/projeto sem overflow lateral */
+.is-mobile .ticket-detail,
+.is-mobile .project-detail-inline{
+  overflow-x:hidden;
+  width:100%;
+}
+
+/* Subtabs menores com rolagem horizontal */
+.is-mobile .ticket-detail .subtabs,
+.is-mobile .project-detail-inline .subtabs{
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  gap:6px;
+}
+.is-mobile .ticket-detail .subtabs .subtab,
+.is-mobile .project-detail-inline .subtabs .subtab{
+  flex:0 0 auto;
+  font-size:12px;
+  padding:6px 10px;
+}
+
+/* esconde o logo da sidebar no mobile */
+.is-mobile .sidebar .logo-row{ display:none; }
+.is-mobile .sidebar{ padding-top:56px; }
+
+/* Tickets & Projects pages: stable flex layout without double scroll */
+.is-mobile.tickets-page .content.panel,
+.is-mobile.projects-page .content.panel{
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+}
+
+/* Projects carousel: cards adapt to viewport width */
+.is-mobile #sectionProjects .project{
+  flex:0 0 100%;
+  max-width:100%;
+  scroll-snap-align:start;
+}
